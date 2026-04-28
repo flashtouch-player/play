@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=5,user-scalable=yes" />
+<link rel="icon" href="https://i.postimg.cc/tTcNK5FL/Icon-flashtouch.png" type="image/png">
+<title>FlashTouch Player - Reproductor SWF Flash con Controles Táctiles</title>
+<meta name="description" content="FlashTouch Player: reproductor de juegos Flash (.swf) en el navegador con controles táctiles personalizables, mapeo de teclas, joystick virtual y soporte para móvil y PC. Gratis y sin instalación." />
+<meta name="keywords" content="FlashTouch Player, reproductor flash, reproductor SWF, jugar flash en móvil, controles táctiles flash, joystick virtual, mapeo de teclas, juegos flash online, ruffle, emulador flash, juegos SWF" />
+<meta name="author" content="FlashTouch Player" />
+<meta name="robots" content="index, follow" />
+<meta name="theme-color" content="#0f1115" />
+<link rel="canonical" href="https://flashtouchplayer.app/" />
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="FlashTouch Player - Reproductor SWF con Controles Táctiles" />
+<meta property="og:description" content="Reproduce juegos Flash (.swf) en cualquier dispositivo con controles táctiles personalizables, joystick virtual y mapeo de teclas." />
+<meta property="og:image" content="https://i.postimg.cc/h4w26SrM/logo-flashtouchplay.png" />
+<meta property="og:site_name" content="FlashTouch Player" />
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="FlashTouch Player - Reproductor SWF Flash" />
+<meta name="twitter:description" content="Reproduce juegos Flash (.swf) en móvil y PC con controles táctiles personalizables." />
+<meta name="twitter:image" content="https://i.postimg.cc/h4w26SrM/logo-flashtouchplay.png" />
+<!-- JSON-LD -->
+<script src="script.js" defer></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <h1>
+    <img src="https://i.postimg.cc/h4w26SrM/logo-flashtouchplay.png" alt="FlashTouch Player" style="height:24px;width:auto;vertical-align:middle" />
+    <button id="themeBtn" class="iconBtn" title="Cambiar tema">🌙</button>
+    <button id="toggleHeaderBtn" class="iconBtn" title="Ocultar/mostrar opciones">👁️</button>
+  </h1>
+  <div class="row">
+    <input type="file" id="fileInput" accept=".swf" />
+    <input type="url" id="urlInput" placeholder="URL .swf (opcional)" style="flex:1;min-width:160px" />
+    <button id="loadUrlBtn">Cargar URL</button>
+    <button id="pauseBtn" class="warn">⏸ Pausa</button>
+    <button id="stopBtn" class="danger">⏹ Detener</button>
+    <button id="reloadBtn">🔄 Reiniciar</button>
+    <button id="volumeBtn" title="Ajustar volumen del reproductor">🔊 Volumen</button>
+    <button id="fsBtn">⛶ Pantalla completa</button>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <label class="chk"><input type="checkbox" id="touchToggle" autocomplete="off" checked /> Controles táctiles</label>
+    <label class="chk"><input type="checkbox" id="editMode" autocomplete="off" /> ✏️ Editar (mover/mapear)</label>
+    <label class="chk"><input type="checkbox" id="stretchToggle" autocomplete="off" /> 📐 Estirar pantalla</label>
+    <select id="ctrlMode">
+      <option value="joy">🕹️ Joystick</option>
+      <option value="arrows">⬆️ Flechas (4 Botones)</option>
+      <option value="arrows8">⬆️ Flechas (8 Botones)</option>
+    </select>
+    <button id="addBtnBtn" class="ok">➕ Añadir botón</button>
+     <button id="settingsBtn">⚙️ Calibrar</button>
+     <button id="qualityBtn" title="Ajustar calidad gráfica del juego">🎚️ Calidad</button>
+    <button id="customizeBtn" title="Personalizar colores de botones táctiles">🎨 Personalizar</button>
+    <button id="exportBtn" class="ok">💾 Exportar</button>
+    <button id="importBtn">📂 Importar</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" />
+    <button id="resetBtn" class="warn">↺ Restaurar</button>
+    <button id="clearBtn" class="danger">🗑 Borrar config</button>
+    <button id="configBtn" title="Configuración avanzada">🛠️ Configuración</button>
+    <button id="helpBtn" title="Ayuda rápida">❓ Ayuda</button>
+  </div>
+</header>
+
+<main>
+  <div id="stage">
+    <div class="empty" id="emptyMsg">Carga un archivo .swf o pega una URL para comenzar</div>
+    <div id="player"></div>
+    <div id="fpsCounter" data-pos="tl" style="display:none;position:absolute;top:6px;left:6px;z-index:40;background:rgba(0,0,0,0.65);color:#6ee7b7;font:bold 12px monospace;padding:3px 8px;border-radius:6px;pointer-events:none;letter-spacing:.5px">FPS: --</div>
+    <div class="resize-handle tl" data-corner="tl"></div>
+    <div class="resize-handle tr" data-corner="tr"></div>
+    <div class="resize-handle bl" data-corner="bl"></div>
+    <div class="resize-handle br" data-corner="br"></div>
+  </div>
+
+  <!-- Barra de estiramiento (visible al activar "Estirar pantalla") -->
+  <div id="stretchBar">
+    <span class="pc-hint" style="color:var(--muted)">🖱️ Arrastra desde las esquinas del reproductor para redimensionarlo.</span>
+    <span class="lbl mobile-only">↔️ Ancho:</span>
+    <input type="range" class="mobile-only" id="stretchW" min="40" max="100" step="1" value="100" />
+    <span class="lbl mobile-only">↕️ Alto:</span>
+    <input type="range" class="mobile-only" id="stretchH" min="30" max="95" step="1" value="60" />
+    <span class="lbl">🔍 Zoom juego:</span>
+    <input type="range" id="stretchZoom" min="50" max="200" step="5" value="100" style="flex:1;min-width:120px" />
+    <span class="lbl">🪟 Tamaño ventana:</span>
+    <input type="range" id="stretchScale" min="50" max="200" step="5" value="100" style="flex:1;min-width:120px" />
+    <span class="lbl">🖼️ Borde:</span>
+    <input type="range" id="stretchBorder" min="0" max="15" step="1" value="0" style="flex:1;min-width:120px" title="Tamaño del borde negro interno del reproductor (0% = sin borde, el juego llena todo)" />
+    <span class="val" id="stretchBorderVal">0%</span>
+    <span class="lbl" title="Recorta los lados izquierdo y derecho del juego para eliminar bordes negros/blancos">✂️ Recorte lateral:</span>
+    <input type="range" id="stretchSideCrop" min="0" max="30" step="1" value="0" style="flex:1;min-width:120px" title="Elimina los bordes negros/blancos de los lados del juego" />
+    <span class="val" id="stretchSideCropVal">0%</span>
+    <button id="stretchReset">↺ Reset</button>
+    <button id="stretchOk" class="ok" title="Guardar y ocultar este menú">✅ OK</button>
+  </div>
+
+  <!-- (La ayuda rápida ahora se abre desde el botón ❓ Ayuda) -->
+</main>
+
+<!-- Footer -->
+<footer id="siteFooter">
+  <span>2026 FlashTouch Player - Versión 1.0 Beta</span>
+</footer>
+
+
+<!-- Capa táctil fija inferior -->
+<div id="touchLayer">
+  <div class="joy floating" id="joy" data-id="joy">
+    <div class="stick" id="stick"></div>
+  </div>
+  <!-- Flechas individuales y movibles -->
+  <div class="arrows" id="arrows">
+    <div class="ab" data-id="arr-up"   data-dir="up"    style="left:62px;bottom:140px">▲</div>
+    <div class="ab" data-id="arr-left" data-dir="left"  style="left:8px; bottom:80px">◀</div>
+    <div class="ab" data-id="arr-right"data-dir="right" style="left:116px;bottom:80px">▶</div>
+    <div class="ab" data-id="arr-down" data-dir="down"  style="left:62px;bottom:20px">▼</div>
+    <!-- Diagonales (sólo visibles en modo "Flechas (8 Botones)") -->
+    <div class="ab diag" data-id="arr-upleft"    data-dir="upLeft"    style="left:8px;  bottom:140px">↖</div>
+    <div class="ab diag" data-id="arr-upright"   data-dir="upRight"   style="left:116px;bottom:140px">↗</div>
+    <div class="ab diag" data-id="arr-downleft"  data-dir="downLeft"  style="left:8px;  bottom:20px">↙</div>
+    <div class="ab diag" data-id="arr-downright" data-dir="downRight" style="left:116px;bottom:20px">↘</div>
+  </div>
+  <!-- Botones de acción -->
+  <div class="pad on" id="pad">
+    <!-- los botones se generan dinámicamente -->
+  </div>
+</div>
+
+<!-- Botón táctil flotante (sólo visible en pantalla completa) que ahora
+     abre un menú desplegable con las opciones más usadas. -->
+<button id="fsEditBtn" type="button" title="Opciones" aria-label="Opciones">✏️</button>
+
+<!-- Menú desplegable del botón ✏️ en pantalla completa -->
+<div id="fsEditMenu" role="menu" aria-hidden="true">
+  <button type="button" data-act="move"   role="menuitem">✏️ Mover controles</button>
+  <button type="button" data-act="add"    role="menuitem">➕ Añadir botón touch</button>
+  <button type="button" data-act="ctrl"   role="menuitem">🎮 Cambiar: Flechas / Joystick</button>
+  <button type="button" data-act="reload" role="menuitem">🔄 Reiniciar</button>
+  <button type="button" data-act="stop"   role="menuitem">⏹ Detener</button>
+  <button type="button" data-act="pause"  role="menuitem">⏸ Pausa</button>
+  <button type="button" data-act="vol"    role="menuitem">🔊 Modificar Volumen</button>
+  <button type="button" data-act="stretch" role="menuitem">📐 Estirar pantalla</button>
+  <button type="button" data-act="cal"    role="menuitem">⚙️ Calibrar</button>
+  <button type="button" data-act="quality" role="menuitem">🎚️ Calidad</button>
+  <button type="button" data-act="config" role="menuitem">🛠️ Configuración</button>
+  <button type="button" data-act="ruffle" role="menuitem">🚫 Bloquear menú Ruffle</button>
+  <button type="button" data-act="exitfs" role="menuitem">⤢ Salir de pantalla completa</button>
+</div>
+
+<!-- Popover de tamaño individual (barrita flotante en modo edición) -->
+<div id="sizePop">
+  <span class="lbl">📏 Tamaño:</span>
+  <input type="range" id="sizePopRange" min="50" max="250" step="5" value="100" />
+  <span class="val" id="sizePopVal">100%</span>
+  <button id="sizePopMap" title="Asignar tecla">⌨️</button>
+  <button id="sizePopClose">✕</button>
+</div>
+
+<!-- Modal mapeo -->
+<div class="modal" id="mapModal">
+  <div class="box">
+    <h3>Asignar tecla</h3>
+    <div class="field">
+      <label>Etiqueta visible en el botón</label>
+      <input type="text" id="mapLabel" maxlength="3" />
+    </div>
+    <div class="field">
+      <label id="keySelectLabel">Selecciona del menú (todas las teclas disponibles)</label>
+      <select id="keySelect"></select>
+    </div>
+    <div class="field">
+      <label>O captura presionando una tecla física</label>
+      <input type="text" id="keyCapture" placeholder="Toca aquí y pulsa una tecla (físico o virtual)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text" />
+      <div class="status idle" id="captureStatus">Esperando captura...</div>
+    </div>
+
+    <!-- Toggle de combo (visible para botones del pad y extras) -->
+    <div class="field" id="comboToggleWrap" style="display:none">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="comboToggle" />
+        <span>🎯 Botón combinado (2 teclas a la vez)</span>
+      </label>
+    </div>
+
+    <!-- Segunda tecla: para diagonales o combos de extras/pad -->
+    <div class="field" id="keySelect2Wrap" style="display:none;border-top:1px dashed var(--border);padding-top:10px">
+      <label style="color:var(--accent2)">🎯 Segunda tecla (combo): se pulsará junto con la primera</label>
+      <select id="keySelect2"></select>
+      <label style="margin-top:6px">O captura física para la 2ª tecla</label>
+      <input type="text" id="keyCapture2" placeholder="Toca aquí y pulsa la 2ª tecla" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text" />
+      <div class="status idle" id="captureStatus2">Esperando captura...</div>
+    </div>
+
+    <div class="row" style="justify-content:flex-end;margin-top:12px">
+      <button id="mapCancel">Cancelar</button>
+      <button id="mapSave" class="primary">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal calibración -->
+<div class="modal" id="settingsModal">
+  <div class="box">
+    <h3>⚙️ Calibrar</h3>
+    <div class="field">
+      <label>Sensibilidad joystick: <span id="sensVal">1.0</span></label>
+      <input type="range" id="sens" min="0.3" max="2" step="0.1" value="1" style="width:100%" />
+    </div>
+    <div class="field">
+      <label>Zona muerta (%): <span id="dzVal">15</span></label>
+      <input type="range" id="dz" min="0" max="50" step="1" value="15" style="width:100%" />
+    </div>
+    <div class="field">
+      <label>Umbral diagonal (%): <span id="diagVal">35</span></label>
+      <input type="range" id="diag" min="10" max="60" step="1" value="35" style="width:100%" />
+    </div>
+    <div class="field">
+      <label>👁️ Visibilidad de botones: <span id="opVal">100</span>%</label>
+      <input type="range" id="op" min="20" max="100" step="5" value="100" style="width:100%" />
+    </div>
+    <div class="field">
+      <label>📏 Tamaño de botones: <span id="szVal">100</span>%</label>
+      <input type="range" id="sz" min="60" max="180" step="5" value="100" style="width:100%" />
+    </div>
+    <div class="field">
+      <label class="chk" style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="holdMode" autocomplete="off" checked /> 🕹️ Hold continuo joystick
+      </label>
+    </div>
+    <div class="row" style="justify-content:space-between;margin-top:12px;gap:8px;flex-wrap:wrap">
+      <button id="settingsReset" class="warn" title="Restaurar valores iniciales de calibración">↺ Reset</button>
+      <button id="settingsClose" class="primary">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Calidad -->
+<div class="modal" id="qualityModal">
+  <div class="box">
+    <h3>🎚️ Calidad gráfica</h3>
+    <div class="field">
+      <label>Calidad: <span id="qualityVal">100</span>% <span id="qualityLabel" style="color:var(--muted);font-weight:normal">(Mejor)</span></label>
+      <input type="range" id="qualityRange" min="0" max="100" step="5" value="100" style="width:100%" />
+      <div style="display:flex;justify-content:space-between;color:var(--muted);font-size:12px;margin-top:4px">
+        <span>Pixeleado</span><span>Mejor calidad</span>
+      </div>
+    </div>
+    <div class="row" style="justify-content:space-between;margin-top:12px;gap:8px;flex-wrap:wrap">
+      <button id="qualityReset" class="warn" title="Restaurar calidad al máximo">↺ Reset</button>
+      <button id="qualityClose" class="primary">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Volumen -->
+<div class="modal" id="volumeModal">
+  <div class="box">
+    <h3>🔊 Volumen del reproductor</h3>
+    <div class="field">
+      <label>Volumen: <span id="volVal">100</span>%</label>
+      <input type="range" id="volRange" min="0" max="100" step="1" value="100" style="width:100%" />
+    </div>
+    <div class="row" style="justify-content:space-between;margin-top:12px;gap:8px;flex-wrap:wrap">
+      <button id="volMute" class="warn">🔇 Silenciar</button>
+      <button id="volClose" class="primary">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Personalizar (colores de botones táctiles) -->
+<div class="modal" id="customizeModal">
+  <div class="box">
+    <h3>🎨 Personalizar botones táctiles</h3>
+    <div class="field">
+      <label>🎨 Color de fondo de los botones</label>
+      <input type="color" id="colorBtnBg" value="#1f2330" style="width:100%;height:40px;padding:2px" />
+    </div>
+    <div class="field">
+      <label>🔤 Color del texto/etiqueta</label>
+      <input type="color" id="colorBtnText" value="#e8ecf3" style="width:100%;height:40px;padding:2px" />
+    </div>
+    <div class="field">
+      <label>🟧 Color al presionar</label>
+      <input type="color" id="colorBtnPress" value="#fb923c" style="width:100%;height:40px;padding:2px" />
+    </div>
+    <div class="field">
+      <label>🔲 Color del borde</label>
+      <input type="color" id="colorBtnBorder" value="#2a2f3d" style="width:100%;height:40px;padding:2px" />
+    </div>
+    <div class="row" style="justify-content:space-between;margin-top:12px;gap:8px;flex-wrap:wrap">
+      <button id="customizeReset" class="warn">↺ Reset colores</button>
+      <button id="customizeClose" class="primary">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Configuración -->
+<div class="modal" id="configModal">
+  <div class="box">
+    <h3 style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      🛠️ Configuración
+      <button id="configCloseX" class="iconBtn" title="Cerrar" style="background:transparent;border:0;color:var(--muted);font-size:18px">✕</button>
+    </h3>
+    <div class="field">
+      <label class="chk" style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="blockRuffleMenu" autocomplete="off" />
+        🚫 Bloquear menú de Ruffle (clic derecho / hold en touch)
+      </label>
+      <div class="hint">Evita que aparezca el menú contextual de Ruffle al hacer clic derecho en PC o al mantener presionado en móvil dentro del juego.</div>
+    </div>
+    <div class="field" style="margin-top:12px">
+      <label class="chk" style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="cfgFpsToggle" autocomplete="off" />
+        📊 Mostrar FPS del reproductor
+      </label>
+      <div id="cfgFpsPosWrap" style="display:none;margin-top:8px;padding-left:24px">
+        <div class="hint" style="margin-bottom:6px">Posición del contador:</div>
+        <select id="cfgFpsPos" style="width:100%">
+          <option value="tl">↖️ Superior Izquierda</option>
+          <option value="tr">↗️ Superior Derecha</option>
+          <option value="bl">↙️ Inferior Izquierda</option>
+          <option value="br">↘️ Inferior Derecha</option>
+        </select>
+      </div>
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px">
+      <button id="configClose" class="primary">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Ayuda -->
+<div class="modal" id="helpModal">
+  <div class="box">
+    <h3 style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      ℹ️ Ayuda rápida
+      <button id="helpCloseX" class="iconBtn" title="Cerrar" style="background:transparent;border:0;color:var(--muted);font-size:18px">✕</button>
+    </h3>
+    <div style="font-size:12px;color:var(--muted);line-height:1.5">
+      • Activa <b>Editar</b> para arrastrar <b>cada botón individualmente</b> a cualquier lugar.<br>
+      • En modo edición, <b>toca brevemente</b> un botón para seleccionarlo y aparecerá una <b>barrita de tamaño</b> para hacerlo más grande o pequeño solo a ese botón.<br>
+      • Pulsa <b>➕ Añadir botón</b> para crear un nuevo botón táctil con la tecla que quieras. En modo edición aparece una <b>X roja</b> para eliminar botones.<br>
+      • Mantén pulsado un botón en edición para abrir el menú con <b>todas las teclas del teclado</b>.<br>
+      • En <b>⚙️ Calibrar</b> ajusta sensibilidad, zona muerta, visibilidad y tamaño <b>global</b> de los botones.<br>
+      • En móvil, <b>⛶ Pantalla completa</b> fuerza horizontal y mantiene los controles visibles.<br>
+      <span style="display:inline-block;margin-top:8px;padding:6px 8px;border-radius:6px;background:rgba(255,180,0,.12);color:var(--muted);border:1px solid rgba(255,180,0,.25)">⚠️ Está pagina web aún está en desarrollo, posiblemente se puedan presentar algún bug o problema.</span>
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px">
+      <button id="helpClose" class="primary">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
+
+</body>
+</html>

@@ -1,3 +1,4 @@
+
 /* ========== Tema oscuro (default) ========== */
   :root{
     --bg:#0f1115; --panel:#171a22; --panel2:#1f2330; --txt:#e8ecf3;
@@ -468,12 +469,17 @@
   #stretchBar{
     display:none;max-width:960px;margin:8px auto 0;
     background:var(--panel);border:1px solid var(--accent2);border-radius:10px;
-    padding:10px 12px;align-items:center;gap:10px;font-size:12px;
+    padding:10px 12px;align-items:center;justify-content:center;gap:10px 14px;font-size:12px;
   }
-  body.stretch-on #stretchBar{display:flex;flex-wrap:wrap}
-  #stretchBar .lbl{color:var(--muted);min-width:60px}
-  #stretchBar input[type=range]{flex:1;min-width:120px}
-  #stretchBar .val{color:var(--accent2);font-weight:700;min-width:48px;text-align:right}
+  body.stretch-on #stretchBar{display:flex;flex-wrap:wrap;justify-content:center;align-items:center}
+  #stretchBar .sb-group{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:4px;min-width:140px;flex:0 1 180px;text-align:center;
+  }
+  #stretchBar .sb-group .lbl{color:var(--muted);text-align:center;white-space:nowrap}
+  #stretchBar .sb-group input[type=range]{width:100%;max-width:200px;margin:0}
+  #stretchBar .sb-group .val{color:var(--accent2);font-weight:700;text-align:center}
+  #stretchBar .sb-actions{display:flex;gap:8px;justify-content:center;align-items:center;flex:1 0 100%;margin-top:4px}
   /* En PC ocultamos los sliders (se usa el mouse en las esquinas) */
   @media (hover:hover) and (pointer:fine){
     #stretchBar .mobile-only{display:none}
@@ -482,6 +488,12 @@
   @media (hover:none) or (pointer:coarse){
     #stretchBar .pc-hint{display:none}
     .resize-handle{display:none !important}
+  }
+  /* En pantallas estrechas: una columna centrada */
+  @media (max-width:520px){
+    body.stretch-on #stretchBar{flex-direction:column;gap:10px}
+    #stretchBar .sb-group{width:100%;max-width:300px;flex:0 0 auto}
+    #stretchBar .sb-group input[type=range]{max-width:260px}
   }
 
   @media (max-width:380px){

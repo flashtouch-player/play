@@ -1,3 +1,24 @@
+
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-Q0RN49XTY3');
+
+
+
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "FlashTouch Player",
+  "description": "Reproductor de juegos Flash (.swf) en el navegador con controles táctiles personalizables, mapeo de teclas y joystick virtual para móvil y PC.",
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "Any",
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}
+}
+
+
+
 /* ---------- Lista COMPLETA de teclas del teclado ---------- */
 const KEY_LIST = [
   {g:'Especiales',k:['Space','Enter','Shift','Control','Alt','Tab','Escape','Backspace','Delete','Insert','Home','End','PageUp','PageDown','CapsLock']},
@@ -102,9 +123,8 @@ function save(){localStorage.setItem(STORE,JSON.stringify(cfg))}
 
 /* ===== Helpers de posiciones por modo (Pantalla completa vs Ventana/Vertical) =====
    - El modo se decide por la clase 'fs-active' del body (la setea fullscreenchange).
-   - Cada vez que se mueve, crea o reposiciona un botón táctil, guardamos su
-     posición tanto en cfg.positions{FS|Win} (modo actual) como en cfg.positions
-     (compat) para que el refresh restaure exactamente donde quedó. */
+   - Las posiciones de ventana/vertical y pantalla completa se guardan en
+     almacenes separados para que un modo NUNCA pise al otro. */
 function _currentMode(){ return document.body.classList.contains('fs-active') ? 'fs' : 'win'; }
 function _posStore(mode){
   if(!cfg.positionsFS) cfg.positionsFS={};
@@ -115,8 +135,9 @@ function _savePos(id,leftStr,topStr){
   if(!id) return;
   const m=_currentMode();
   _posStore(m)[id]={left:leftStr, top:topStr};
-  if(!cfg.positions) cfg.positions={};
-  cfg.positions[id]={left:leftStr, top:topStr};
+  // NOTA: NO escribimos en cfg.positions (legacy) para que cada modo
+  // (vertical/ventana vs pantalla completa) mantenga su posición de forma
+  // totalmente independiente y no se contaminen entre sí.
 }
 function _delPos(id){
   if(!id) return;
@@ -124,57 +145,43 @@ function _delPos(id){
   if(cfg.positionsFS) delete cfg.positionsFS[id];
   if(cfg.positionsWin) delete cfg.positionsWin[id];
 }
-/* Aplica al DOM las posiciones guardadas para el modo dado, proyectando
-   "lado" (izquierda/derecha) para los botones que sólo existen en el modo opuesto.
-   Esto permite que un botón creado en vertical aparezca al cambiar a fullscreen
-   en el MISMO lado de la pantalla (izq/der), respetando la fracción Y. */
+/* Aplica al DOM únicamente las posiciones guardadas para el modo dado.
+   No usa fallback ni proyección desde el modo opuesto para evitar que
+   fullscreen y NO fullscreen se pisen entre sí. */
 function _applyPositionsForMode(mode){
   const layer=document.getElementById('touchLayer'); if(!layer) return;
   const lr=layer.getBoundingClientRect();
   if(lr.width<=0||lr.height<=0) return;
   const target=_posStore(mode);
-  const other =_posStore(mode==='fs'?'win':'fs');
   const els=Array.from(document.querySelectorAll('#touchLayer [data-id]'));
   els.forEach(el=>{
     if(el.id==='fsEditBtn') return;
     const id=el.dataset.id; if(!id) return;
+    const p=target[id];
+    if(!p) return;
     const w=el.offsetWidth||40, h=el.offsetHeight||40;
     const maxX=Math.max(0, lr.width-w);
     const maxY=Math.max(0, lr.height-h);
-    let p=target[id];
-    if(!p && other[id]){
-      // Proyectar lado-aware desde el modo opuesto
-      const lx=parseFloat(other[id].left)||0;
-      const ly=parseFloat(other[id].top)||0;
-      // Necesitamos las dimensiones que tenía el otro modo: usamos snapshot si existe
-      const snap=_touchSnapshots[mode==='fs'?'win':'fs'];
-      let oW=lr.width, oH=lr.height;
-      if(snap && snap.__layer){ oW=snap.__layer.w||oW; oH=snap.__layer.h||oH; }
-      const cx=lx + w/2;
-      const fy=(ly+h/2)/Math.max(1,oH);
-      const onRight = cx > oW/2;
-      const nx = onRight ? maxX : 0;
-      const ny = Math.min(Math.max(0, fy*lr.height - h/2), maxY);
-      p={left:nx+'px', top:ny+'px'};
-      target[id]=p; // memorizar la proyección
-    }
-    if(p){
-      let x=parseFloat(p.left)||0, y=parseFloat(p.top)||0;
-      x=Math.min(Math.max(0,x), maxX);
-      y=Math.min(Math.max(0,y), maxY);
-      el.style.left=x+'px';
-      el.style.top =y+'px';
-      el.style.right='auto';
-      el.style.bottom='auto';
-    }
+    let x=parseFloat(p.left)||0, y=parseFloat(p.top)||0;
+    x=Math.min(Math.max(0,x), maxX);
+    y=Math.min(Math.max(0,y), maxY);
+    el.style.left=x+'px';
+    el.style.top =y+'px';
+    el.style.right='auto';
+    el.style.bottom='auto';
   });
-  try{ save(); }catch{}
 }
 
 /* ---------- Tema ---------- */
 function applyTheme(){
   document.documentElement.setAttribute('data-theme',cfg.theme);
   document.getElementById('themeBtn').textContent = cfg.theme==='dark'?'🌙':'☀️';
+  var _logo=document.getElementById('headerLogo');
+  if(_logo){
+    _logo.src = cfg.theme==='light'
+      ? 'https://i.postimg.cc/260ZY2Wb/logo-2.png'
+      : 'https://i.postimg.cc/wvwmz0NR/logo-1.png';
+  }
 }
 document.getElementById('themeBtn').onclick=()=>{
   cfg.theme = cfg.theme==='dark'?'light':'dark';save();applyTheme();
@@ -260,6 +267,12 @@ document.getElementById('reloadBtn').onclick=()=>{
 /* ---------- Pantalla completa con landscape forzado ---------- */
 document.getElementById('fsBtn').onclick=async()=>{
   const s=document.getElementById('stage');
+  const modeBefore=_currentMode();
+  // Guardar ANTES de que el navegador cambie el tamaño/orientación del layout.
+  // Esto evita que al entrar/salir de fullscreen se sobrescriba la posición
+  // guardada del modo NO fullscreen con coordenadas del modo fullscreen.
+  try{ saveTouchPositionsSnapshot(modeBefore); }catch{}
+  try{ persistTouchPositionsForMode(modeBefore); }catch{}
   if(!document.fullscreenElement){
     try{await s.requestFullscreen?.()}catch{}
     try{await screen.orientation?.lock?.('landscape')}catch{}
@@ -270,20 +283,9 @@ document.getElementById('fsBtn').onclick=async()=>{
 };
 document.addEventListener('fullscreenchange',()=>{
   const fs=!!document.fullscreenElement;
-  // Antes de cambiar de modo, guardamos un snapshot (en memoria) Y persistimos
-  // las posiciones actuales del modo que estamos abandonando en cfg.positions{FS|Win}.
-  const oldMode=document.body.classList.contains('fs-active')?'fs':'win';
-  try{ saveTouchPositionsSnapshot(oldMode); }catch{}
-  try{
-    const store=_posStore(oldMode);
-    _allTouchEls().forEach(el=>{
-      const id=el.dataset.id; if(!id||el.id==='fsEditBtn') return;
-      if(el.style.left && el.style.top){
-        store[id]={left:el.style.left, top:el.style.top};
-      }
-    });
-    save();
-  }catch{}
+  // En fullscreenchange ya cambió el tamaño del viewport; por eso NO grabamos
+  // aquí posiciones del modo anterior. Sólo restauramos el almacén del modo
+  // nuevo para que fullscreen y NO fullscreen sean totalmente independientes.
   document.body.classList.toggle('fs-active',fs);
   // Detectar si necesitamos rotar manualmente (portrait)
   const isPortrait = window.matchMedia('(orientation: portrait)').matches;
@@ -347,12 +349,11 @@ document.addEventListener('fullscreenchange',()=>{
   const _doFix=()=>{
     // 1) Restaurar snapshot en memoria (rápido)
     try{ restoreTouchPositionsSnapshot(newMode); }catch{}
-    // 2) Aplicar posiciones persistidas para el modo nuevo, proyectando lado-aware
-    //    los botones que sólo existían en el modo opuesto.
+    // 2) Aplicar sólo las posiciones persistidas del modo nuevo.
+    //    Nunca copiamos/proyectamos desde el modo opuesto.
     try{ _applyPositionsForMode(newMode); }catch{}
     // 3) Reordenar flechas en cruz 3x3 SOLO si están activas y NINGUNA flecha
-    //    tiene posición disponible (ni guardada para este modo, ni proyectada
-    //    desde el modo opuesto). De lo contrario, respetamos la ubicación
+    //    tiene posición disponible en este modo. De lo contrario, respetamos la ubicación
     //    elegida por el usuario (p.ej. esquina inferior derecha en vertical
     //    debe mantenerse al pasar a pantalla completa).
     try{
@@ -360,10 +361,9 @@ document.addEventListener('fullscreenchange',()=>{
         const arrowIds=['arr-up','arr-down','arr-left','arr-right',
           'arr-upleft','arr-upright','arr-downleft','arr-downright'];
         const store=_posStore(newMode);
-        const otherStore=_posStore(newMode==='fs'?'win':'fs');
         const isArrows8=cfg.ctrlMode==='arrows8';
         const activeIds = isArrows8 ? arrowIds : arrowIds.slice(0,4);
-        const hasAny = activeIds.some(id=>store[id]||otherStore[id]);
+        const hasAny = activeIds.some(id=>store[id]);
         if(!hasAny){ relayoutArrows(isArrows8); }
       }
     }catch{}
@@ -393,7 +393,7 @@ function saveTouchPositionsSnapshot(mode){
     const id=el.dataset.id||el.id; if(!id) return;
     snap[id]={ left:el.style.left||'', top:el.style.top||'', right:el.style.right||'', bottom:el.style.bottom||'' };
   });
-  // Guardar también dimensiones del layer para proyección lado-aware
+  // Guardar también dimensiones del layer para restaurar este modo sin mezclarlo con otro
   const layer=document.getElementById('touchLayer');
   if(layer){
     const lr=layer.getBoundingClientRect();
@@ -409,6 +409,26 @@ function restoreTouchPositionsSnapshot(mode){
     el.style.left=p.left; el.style.top=p.top;
     el.style.right=p.right; el.style.bottom=p.bottom;
   });
+}
+function persistTouchPositionsForMode(mode){
+  const layer=document.getElementById('touchLayer'); if(!layer) return;
+  const lr=layer.getBoundingClientRect();
+  if(lr.width<=0||lr.height<=0) return;
+  const store=_posStore(mode);
+  _allTouchEls().forEach(el=>{
+    if(el.id==='fsEditBtn') return;
+    const id=el.dataset.id; if(!id) return;
+    const cs=getComputedStyle(el);
+    if(cs.display==='none'||cs.visibility==='hidden') return;
+    const r=el.getBoundingClientRect();
+    if(r.width<=0||r.height<=0) return;
+    const maxX=Math.max(0, lr.width-r.width);
+    const maxY=Math.max(0, lr.height-r.height);
+    const x=Math.min(Math.max(0, r.left-lr.left), maxX);
+    const y=Math.min(Math.max(0, r.top-lr.top), maxY);
+    store[id]={left:x+'px', top:y+'px'};
+  });
+  try{ save(); }catch{}
 }
 /* Devuelve el rectángulo (relativo a #touchLayer) que ocupa el botón
    flotante ✏️ (#fsEditBtn) cuando es visible (sólo en pantalla completa).
@@ -467,12 +487,10 @@ function clampTouchControlsToViewport(){
       el.style.right='auto';
       el.style.bottom='auto';
       changed=true;
-      // Persistir la posición corregida para que el próximo refresh
-      // NO vuelva a producir el "salto" — se queda donde está ahora.
-      const id=el.dataset.id;
-      if(id){
-        _savePos(id, el.style.left, el.style.top);
-      }
+      // No persistimos este clamp automático: sólo mantiene el botón visible
+      // durante resize/rotación/transición sin pisar la posición guardada del
+      // modo actual. La posición sólo se graba al mover el botón o al cambiar
+      // de fullscreen/no fullscreen mediante persistTouchPositionsForMode().
     }
   });
   if(changed){ try{ save(); }catch{} }
@@ -694,14 +712,19 @@ function renderPad(){
       if(!confirm('¿Eliminar este botón?'))return;
       cfg.pad.splice(i,1);
       _delPos(id);
-      // Reindexar posiciones guardadas pad-N posteriores
-      const newPos={};
-      Object.entries(cfg.positions).forEach(([k,v])=>{
-        const m=k.match(/^pad-(\d+)$/);
-        if(m){const n=+m[1]; if(n>i) newPos['pad-'+(n-1)]=v; else newPos[k]=v;}
-        else newPos[k]=v;
-      });
-      cfg.positions=newPos;
+      // Reindexar posiciones guardadas pad-N posteriores en cada modo
+      const reindexPadPositions=(obj)=>{
+        const out={};
+        Object.entries(obj||{}).forEach(([k,v])=>{
+          const m=k.match(/^pad-(\d+)$/);
+          if(m){const n=+m[1]; if(n>i) out['pad-'+(n-1)]=v; else if(n<i) out[k]=v;}
+          else out[k]=v;
+        });
+        return out;
+      };
+      cfg.positions=reindexPadPositions(cfg.positions);
+      cfg.positionsWin=reindexPadPositions(cfg.positionsWin);
+      cfg.positionsFS=reindexPadPositions(cfg.positionsFS);
       save();renderPad();applyConfig();
     };
     el.appendChild(x);
@@ -1495,18 +1518,9 @@ function applyConfig(){
   // Render dinámico del pad si está vacío
   if(!document.querySelector('#pad .pbtn'))renderPad();
   // posiciones individuales guardadas (modo actual: vertical/normal o pantalla completa)
-  // Fallback: si en este modo no hay nada para un id, usamos el legacy cfg.positions.
-  const _curStore=_posStore(_currentMode());
-  const _seen=new Set();
-  Object.entries(_curStore).forEach(([id,p])=>{
-    const el=document.querySelector(`[data-id="${id}"]`);
-    if(el&&p&&p.left&&p.top){el.style.left=p.left;el.style.top=p.top;el.style.bottom='auto';el.style.right='auto';_seen.add(id);}
-  });
-  Object.entries(cfg.positions||{}).forEach(([id,p])=>{
-    if(_seen.has(id)) return;
-    const el=document.querySelector(`[data-id="${id}"]`);
-    if(el&&p&&p.left&&p.top){el.style.left=p.left;el.style.top=p.top;el.style.bottom='auto';el.style.right='auto'}
-  });
+  _applyPositionsForMode(_currentMode());
+  // Nota: NO usamos cfg.positions (legacy) ni proyectamos desde el modo opuesto
+  // porque eso pisaría las posiciones independientes de vertical/fullscreen.
   // etiquetas flechas
   document.querySelectorAll('#arrows .ab').forEach(b=>{
     const lbl=cfg.arrowLabels?.[b.dataset.dir];if(lbl)b.textContent=lbl;
@@ -2518,3 +2532,5 @@ document.querySelectorAll('.resize-handle').forEach(h=>{
     }catch{}
   });
 });
+
+

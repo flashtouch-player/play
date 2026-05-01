@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=5,user-scalable=yes" />
 <link rel="icon" href="icon.png" type="image/png">
+<link rel="shortcut icon" href="icon.png">
 <title>FlashTouch Player - Reproductor SWF Flash con Controles Táctiles</title>
 <meta name="description" content="FlashTouch Player: reproductor de juegos Flash (.swf) en el navegador con controles táctiles personalizables, mapeo de teclas, joystick virtual y soporte para móvil y PC. Gratis y sin instalación." />
 <meta name="keywords" content="FlashTouch Player, reproductor flash, reproductor SWF, jugar flash en móvil, controles táctiles flash, joystick virtual, mapeo de teclas, juegos flash online, ruffle, emulador flash, juegos SWF" />
@@ -23,19 +24,9 @@
 <meta name="twitter:description" content="Reproduce juegos Flash (.swf) en móvil y PC con controles táctiles personalizables." />
 <meta name="twitter:image" content="https://raw.githubusercontent.com/flashtouch-player/play/refs/heads/main/miniatura.png" />
  <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-Q0RN49XTY3"></script>
 
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "name": "FlashTouch Player",
-  "description": "Reproductor de juegos Flash (.swf) en el navegador con controles táctiles personalizables, mapeo de teclas y joystick virtual para móvil y PC.",
-  "applicationCategory": "GameApplication",
-  "operatingSystem": "Any",
-  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}
-}
-</script>
+
+
 
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -51,6 +42,7 @@
   <div class="row">
     <input type="file" id="fileInput" accept=".swf" />
     <input type="url" id="urlInput" placeholder="URL .swf (opcional)" style="flex:1;min-width:160px" />
+    <input type="url" id="pageUrlInput" placeholder="Cargar Juego por Página Web" style="flex:1;min-width:200px" />
     <button id="loadUrlBtn">Cargar URL</button>
     <button id="pauseBtn" class="warn">⏸ Pausa</button>
     <button id="stopBtn" class="danger">⏹ Detener</button>
@@ -60,6 +52,7 @@
   </div>
   <div class="row" style="margin-top:8px">
     <label class="chk"><input type="checkbox" id="touchToggle" autocomplete="off" checked /> Controles táctiles</label>
+    <button id="posSlotsBtn" title="Guardar / Cargar posiciones de los botones táctiles por modo (Global, No Fullscreen, Fullscreen).">💾 Cargar Posición de Botones Tactiles</button>
     <label class="chk"><input type="checkbox" id="editMode" autocomplete="off" /> ✏️ Editar (mover/mapear)</label>
     <label class="chk"><input type="checkbox" id="stretchToggle" autocomplete="off" /> 📐 Estirar pantalla</label>
     <select id="ctrlMode">
@@ -83,6 +76,13 @@
 <main>
   <div id="stage">
     <div class="empty" id="emptyMsg">Carga un archivo .swf o pega una URL para comenzar</div>
+    <div class="empty" id="loadingMsg" style="display:none;flex-direction:column;gap:12px;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);z-index:5">
+      <div id="loadingTitle" style="font-size:15px;color:var(--txt);font-weight:600">Descargando juego…</div>
+      <div style="width:min(70%,320px);height:10px;background:var(--panel2);border:1px solid var(--border);border-radius:999px;overflow:hidden">
+        <div id="loadingBar" style="height:100%;width:0%;background:linear-gradient(90deg,#3b82f6,#22c55e);transition:width .15s linear"></div>
+      </div>
+      <div id="loadingPct" style="font-size:13px;color:var(--txt);font-variant-numeric:tabular-nums">0%</div>
+    </div>
     <div id="player"></div>
     <div id="fpsCounter" data-pos="tl" style="display:none;position:absolute;top:6px;left:6px;z-index:40;background:rgba(0,0,0,0.65);color:#6ee7b7;font:bold 12px monospace;padding:3px 8px;border-radius:6px;pointer-events:none;letter-spacing:.5px">FPS: --</div>
     <div class="resize-handle tl" data-corner="tl"></div>
@@ -166,6 +166,7 @@
 <div id="fsEditMenu" role="menu" aria-hidden="true">
   <button type="button" data-act="move"   role="menuitem">✏️ Mover controles</button>
   <button type="button" data-act="add"    role="menuitem">➕ Añadir botón touch</button>
+  <button type="button" data-act="posSlots" role="menuitem">💾 Cargar Posición de Botones Tactiles</button>
   <button type="button" data-act="ctrl"   role="menuitem">🎮 Cambiar: Flechas / Joystick</button>
   <button type="button" data-act="reload" role="menuitem">🔄 Reiniciar</button>
   <button type="button" data-act="stop"   role="menuitem">⏹ Detener</button>
@@ -361,6 +362,53 @@
   </div>
 </div>
 
+<!-- Modal: Cargar / Guardar posiciones por modo -->
+<div class="modal" id="posModal">
+  <div class="box">
+    <h3>💾 Cargar / Guardar Posición de Botones Tactiles</h3>
+    <div class="hint" style="margin-bottom:10px">
+      Guarda en caché la posición actual de los botones táctiles, o carga una guardada anteriormente. Cada modo tiene su propio espacio independiente.
+    </div>
+
+    <div class="field" style="border-top:1px dashed var(--border);padding-top:10px">
+      <label style="color:var(--accent2)"><strong>🌐 Posición Global</strong> <span class="hint" style="font-weight:normal">— guarda/carga las posiciones de TODOS los modos (No Fullscreen y Fullscreen) a la vez.</span></label>
+      <div class="row" style="margin-top:6px;flex-wrap:wrap;gap:6px">
+        <button class="primary" data-pos-action="save" data-pos-slot="global">💾 Guardar</button>
+        <button data-pos-action="load" data-pos-slot="global">📂 Cargar</button>
+        <button class="warn" data-pos-action="delete" data-pos-slot="global" title="Eliminar la configuración guardada en este slot">🗑️ Eliminar</button>
+        <button data-pos-action="default" data-pos-slot="global" title="Restablecer los botones a su posición de fábrica">♻️ Default</button>
+        <span class="hint" id="posSlotInfo-global" style="margin-left:auto"></span>
+      </div>
+    </div>
+
+    <div class="field" style="border-top:1px dashed var(--border);padding-top:10px">
+      <label><strong>🪟 No Fullscreen</strong> <span class="hint" style="font-weight:normal">— modo ventana (Vertical y Horizontal).</span></label>
+      <div class="row" style="margin-top:6px;flex-wrap:wrap;gap:6px">
+        <button class="primary" data-pos-action="save" data-pos-slot="win">💾 Guardar</button>
+        <button data-pos-action="load" data-pos-slot="win">📂 Cargar</button>
+        <button class="warn" data-pos-action="delete" data-pos-slot="win" title="Eliminar la configuración guardada en este slot">🗑️ Eliminar</button>
+        <button data-pos-action="default" data-pos-slot="win" title="Restablecer los botones a su posición de fábrica">♻️ Default</button>
+        <span class="hint" id="posSlotInfo-win" style="margin-left:auto"></span>
+      </div>
+    </div>
+
+    <div class="field" style="border-top:1px dashed var(--border);padding-top:10px">
+      <label><strong>⛶ Fullscreen</strong> <span class="hint" style="font-weight:normal">— sólo modo Pantalla Completa.</span></label>
+      <div class="row" style="margin-top:6px;flex-wrap:wrap;gap:6px">
+        <button class="primary" data-pos-action="save" data-pos-slot="fs">💾 Guardar</button>
+        <button data-pos-action="load" data-pos-slot="fs">📂 Cargar</button>
+        <button class="warn" data-pos-action="delete" data-pos-slot="fs" title="Eliminar la configuración guardada en este slot">🗑️ Eliminar</button>
+        <button data-pos-action="default" data-pos-slot="fs" title="Restablecer los botones a su posición de fábrica">♻️ Default</button>
+        <span class="hint" id="posSlotInfo-fs" style="margin-left:auto"></span>
+      </div>
+    </div>
+
+    <div class="row" style="justify-content:flex-end;margin-top:14px">
+      <button id="posModalClose" class="ok">✅ Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Ayuda -->
 <div class="modal" id="helpModal">
   <div class="box">
@@ -384,9 +432,10 @@
   </div>
 </div>
 
-<script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
+
 
     
+
 <script src="script.js"></script>
 </body>
 </html>

@@ -1,3 +1,13 @@
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "FlashTouch Player",
+  "description": "Reproductor de juegos Flash (.swf) en el navegador con controles táctiles personalizables, mapeo de teclas y joystick virtual para móvil y PC.",
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "Any",
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}
+}
+
 /* ---------- Lista COMPLETA de teclas del teclado ---------- */
 const KEY_LIST = [
   {g:'Especiales',k:['Space','Enter','Shift','Control','Alt','Tab','Escape','Backspace','Delete','Insert','Home','End','PageUp','PageDown','CapsLock']},

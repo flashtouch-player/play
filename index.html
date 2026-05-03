@@ -1049,8 +1049,7 @@ const defaults = {
   positionsWin:{},                       // posiciones por id en modo VENTANA / VERTICAL
   sizes:{},                              // tamaño individual por id (1.0 = 100%)
   pad:[
-    {key:'Space',label:'A'},{key:'z',label:'B'},{key:'x',label:'X'},
-    {key:'c',label:'Y'},{key:'Enter',label:'⏎'},{key:'Shift',label:'⇧'}
+    {key:'Space',label:'SPACE'}
   ],
   // botones extra añadidos por el usuario
   extraPad:[],
@@ -1065,7 +1064,7 @@ const defaults = {
     downRight:{key1:'ArrowDown', key2:'ArrowRight'}
   },
   cal:{sens:1,dz:15,diag:35,opacity:100,size:100},
-  ctrlMode:'joy', hold:true, touchOn:true,
+  ctrlMode:'arrows', hold:true, touchOn:true,
   theme:'dark',
   headerCollapsed:false,
   stretch:{on:false, w:100, h:60, zoom:100, scale:100, border:0, sideCrop:0},   // % del contenedor + zoom + escala + borde negro interno (%) + recorte lateral en fullscreen (%)
@@ -2194,8 +2193,10 @@ function renderPad(){
     // Badge eliminar (también para botones por defecto). El joystick NO tiene badge.
     const x=document.createElement('div');
     x.className='delBadge';x.textContent='×';
+    if(b.key==='Space'){ x.style.display='none'; }
     x.onclick=ev=>{
       ev.stopPropagation();
+      if((cfg.pad[i]?.key)==='Space'){alert('El botón SPACE no se puede eliminar.');return;}
       if(!confirm('¿Eliminar este botón?'))return;
       cfg.pad.splice(i,1);
       _delPos(id);
@@ -2284,16 +2285,30 @@ function makeDraggable(el){
   // absolute resuelve contra #touchLayer). Usamos siempre éste para que el
   // botón se pueda mover por TODA la pantalla (vertical y fullscreen).
   const _container=()=>document.getElementById('touchLayer')||el.parentElement;
+  // Arrows mueven en grupo: capturamos posición inicial de TODAS las flechas
+  let _group=null; // {els:[{el,ox,oy}]}
+  const _isArrow=el.closest && el.closest('#arrows');
   const start=e=>{
     if(!editChk.checked)return;
-    // No iniciar drag si se tocó el badge eliminar
     if(e.target.classList.contains('delBadge'))return;
     const t=e.touches?e.touches[0]:e;
     dragging=true;moved=false;sx=t.clientX;sy=t.clientY;
-    const r=el.getBoundingClientRect();
     const pr=_container().getBoundingClientRect();
+    const r=el.getBoundingClientRect();
     ox=r.left-pr.left;oy=r.top-pr.top;
     el.style.left=ox+'px';el.style.top=oy+'px';el.style.bottom='auto';el.style.right='auto';
+    if(_isArrow){
+      _group={els:[]};
+      document.querySelectorAll('#arrows .ab').forEach(a=>{
+        if(a===el) return;
+        const cs=getComputedStyle(a);
+        if(cs.display==='none') return;
+        const ar=a.getBoundingClientRect();
+        const aox=ar.left-pr.left, aoy=ar.top-pr.top;
+        a.style.left=aox+'px';a.style.top=aoy+'px';a.style.bottom='auto';a.style.right='auto';
+        _group.els.push({el:a,ox:aox,oy:aoy});
+      });
+    } else { _group=null; }
     e.preventDefault?.();e.stopPropagation?.();
   };
   const move=e=>{
@@ -2301,20 +2316,34 @@ function makeDraggable(el){
     const t=e.touches?e.touches[0]:e;
     const dx=t.clientX-sx,dy=t.clientY-sy;
     if(Math.abs(dx)>3||Math.abs(dy)>3)moved=true;
-    let nx=ox+dx, ny=oy+dy;
-    // Clamp en vivo contra TODA la pantalla (touchLayer fullscreen): el botón
-    // nunca puede salir de los bordes pero puede ir a CUALQUIER posición de
-    // la pantalla, vertical, horizontal o fullscreen.
     const c=_container();
-    if(c){
-      const pr=c.getBoundingClientRect();
-      const w=el.offsetWidth||40, h=el.offsetHeight||40;
-      const maxX=Math.max(0, pr.width  - w);
-      const maxY=Math.max(0, pr.height - h);
-      if(nx<0)nx=0; else if(nx>maxX)nx=maxX;
-      if(ny<0)ny=0; else if(ny>maxY)ny=maxY;
+    let pr=c?c.getBoundingClientRect():null;
+    let cdx=dx, cdy=dy;
+    if(_group && pr){
+      // Limitar delta para que NINGÚN botón del grupo se salga de la pantalla
+      const all=[{el,ox,oy},..._group.els];
+      let minDx=-Infinity,maxDx=Infinity,minDy=-Infinity,maxDy=Infinity;
+      all.forEach(it=>{
+        const w=it.el.offsetWidth||40,h=it.el.offsetHeight||40;
+        minDx=Math.max(minDx, -it.ox);
+        maxDx=Math.min(maxDx, pr.width-w-it.ox);
+        minDy=Math.max(minDy, -it.oy);
+        maxDy=Math.min(maxDy, pr.height-h-it.oy);
+      });
+      cdx=Math.min(Math.max(cdx,minDx),maxDx);
+      cdy=Math.min(Math.max(cdy,minDy),maxDy);
+      el.style.left=(ox+cdx)+'px'; el.style.top=(oy+cdy)+'px';
+      _group.els.forEach(it=>{ it.el.style.left=(it.ox+cdx)+'px'; it.el.style.top=(it.oy+cdy)+'px'; });
+    } else {
+      let nx=ox+dx, ny=oy+dy;
+      if(pr){
+        const w=el.offsetWidth||40, h=el.offsetHeight||40;
+        const maxX=Math.max(0, pr.width-w), maxY=Math.max(0, pr.height-h);
+        if(nx<0)nx=0; else if(nx>maxX)nx=maxX;
+        if(ny<0)ny=0; else if(ny>maxY)ny=maxY;
+      }
+      el.style.left=nx+'px';el.style.top=ny+'px';
     }
-    el.style.left=nx+'px';el.style.top=ny+'px';
   };
   const end=()=>{
     if(!dragging)return;dragging=false;
@@ -2335,8 +2364,11 @@ function makeDraggable(el){
           el.style.left=nx+'px'; el.style.top=ny+'px';
         }
       }
-      _savePos(el.dataset.id, el.style.left, el.style.top); save();
+      _savePos(el.dataset.id, el.style.left, el.style.top);
+      if(_group){ _group.els.forEach(it=>_savePos(it.el.dataset.id, it.el.style.left, it.el.style.top)); }
+      save();
     }
+    _group=null;
   };
   el.addEventListener('touchstart',start,{passive:false});
   el.addEventListener('touchmove',move,{passive:false});
@@ -3206,10 +3238,19 @@ sizePopRange.oninput=()=>{
   const pct=parseInt(sizePopRange.value);
   sizePopVal.textContent=pct+'%';
   const s=pct/100;
-  cfg.sizes[sizePopTarget.id]=s;
-  applyIndividualSize(sizePopTarget.id);
-  // reposicionar popover (el botón cambió de tamaño)
-  positionSizePop(sizePopTarget.el);
+  const tgt=sizePopTarget;
+  const isArrow = tgt.el && tgt.el.closest && tgt.el.closest('#arrows');
+  if(isArrow){
+    // Aplicar el mismo tamaño a TODAS las flechas (4 y 8) como conjunto
+    document.querySelectorAll('#arrows .ab').forEach(a=>{
+      cfg.sizes[a.dataset.id]=s;
+      applyIndividualSize(a.dataset.id);
+    });
+  } else {
+    cfg.sizes[tgt.id]=s;
+    applyIndividualSize(tgt.id);
+  }
+  positionSizePop(tgt.el);
   save();
 };
 sizePopMap.onclick=()=>{

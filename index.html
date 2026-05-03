@@ -2193,10 +2193,8 @@ function renderPad(){
     // Badge eliminar (también para botones por defecto). El joystick NO tiene badge.
     const x=document.createElement('div');
     x.className='delBadge';x.textContent='×';
-    if(b.key==='Space'){ x.style.display='none'; }
     x.onclick=ev=>{
       ev.stopPropagation();
-      if((cfg.pad[i]?.key)==='Space'){alert('El botón SPACE no se puede eliminar.');return;}
       if(!confirm('¿Eliminar este botón?'))return;
       cfg.pad.splice(i,1);
       _delPos(id);
@@ -2285,30 +2283,16 @@ function makeDraggable(el){
   // absolute resuelve contra #touchLayer). Usamos siempre éste para que el
   // botón se pueda mover por TODA la pantalla (vertical y fullscreen).
   const _container=()=>document.getElementById('touchLayer')||el.parentElement;
-  // Arrows mueven en grupo: capturamos posición inicial de TODAS las flechas
-  let _group=null; // {els:[{el,ox,oy}]}
-  const _isArrow=el.closest && el.closest('#arrows');
   const start=e=>{
     if(!editChk.checked)return;
+    // No iniciar drag si se tocó el badge eliminar
     if(e.target.classList.contains('delBadge'))return;
     const t=e.touches?e.touches[0]:e;
     dragging=true;moved=false;sx=t.clientX;sy=t.clientY;
-    const pr=_container().getBoundingClientRect();
     const r=el.getBoundingClientRect();
+    const pr=_container().getBoundingClientRect();
     ox=r.left-pr.left;oy=r.top-pr.top;
     el.style.left=ox+'px';el.style.top=oy+'px';el.style.bottom='auto';el.style.right='auto';
-    if(_isArrow){
-      _group={els:[]};
-      document.querySelectorAll('#arrows .ab').forEach(a=>{
-        if(a===el) return;
-        const cs=getComputedStyle(a);
-        if(cs.display==='none') return;
-        const ar=a.getBoundingClientRect();
-        const aox=ar.left-pr.left, aoy=ar.top-pr.top;
-        a.style.left=aox+'px';a.style.top=aoy+'px';a.style.bottom='auto';a.style.right='auto';
-        _group.els.push({el:a,ox:aox,oy:aoy});
-      });
-    } else { _group=null; }
     e.preventDefault?.();e.stopPropagation?.();
   };
   const move=e=>{
@@ -2316,34 +2300,20 @@ function makeDraggable(el){
     const t=e.touches?e.touches[0]:e;
     const dx=t.clientX-sx,dy=t.clientY-sy;
     if(Math.abs(dx)>3||Math.abs(dy)>3)moved=true;
+    let nx=ox+dx, ny=oy+dy;
+    // Clamp en vivo contra TODA la pantalla (touchLayer fullscreen): el botón
+    // nunca puede salir de los bordes pero puede ir a CUALQUIER posición de
+    // la pantalla, vertical, horizontal o fullscreen.
     const c=_container();
-    let pr=c?c.getBoundingClientRect():null;
-    let cdx=dx, cdy=dy;
-    if(_group && pr){
-      // Limitar delta para que NINGÚN botón del grupo se salga de la pantalla
-      const all=[{el,ox,oy},..._group.els];
-      let minDx=-Infinity,maxDx=Infinity,minDy=-Infinity,maxDy=Infinity;
-      all.forEach(it=>{
-        const w=it.el.offsetWidth||40,h=it.el.offsetHeight||40;
-        minDx=Math.max(minDx, -it.ox);
-        maxDx=Math.min(maxDx, pr.width-w-it.ox);
-        minDy=Math.max(minDy, -it.oy);
-        maxDy=Math.min(maxDy, pr.height-h-it.oy);
-      });
-      cdx=Math.min(Math.max(cdx,minDx),maxDx);
-      cdy=Math.min(Math.max(cdy,minDy),maxDy);
-      el.style.left=(ox+cdx)+'px'; el.style.top=(oy+cdy)+'px';
-      _group.els.forEach(it=>{ it.el.style.left=(it.ox+cdx)+'px'; it.el.style.top=(it.oy+cdy)+'px'; });
-    } else {
-      let nx=ox+dx, ny=oy+dy;
-      if(pr){
-        const w=el.offsetWidth||40, h=el.offsetHeight||40;
-        const maxX=Math.max(0, pr.width-w), maxY=Math.max(0, pr.height-h);
-        if(nx<0)nx=0; else if(nx>maxX)nx=maxX;
-        if(ny<0)ny=0; else if(ny>maxY)ny=maxY;
-      }
-      el.style.left=nx+'px';el.style.top=ny+'px';
+    if(c){
+      const pr=c.getBoundingClientRect();
+      const w=el.offsetWidth||40, h=el.offsetHeight||40;
+      const maxX=Math.max(0, pr.width  - w);
+      const maxY=Math.max(0, pr.height - h);
+      if(nx<0)nx=0; else if(nx>maxX)nx=maxX;
+      if(ny<0)ny=0; else if(ny>maxY)ny=maxY;
     }
+    el.style.left=nx+'px';el.style.top=ny+'px';
   };
   const end=()=>{
     if(!dragging)return;dragging=false;
@@ -2364,11 +2334,8 @@ function makeDraggable(el){
           el.style.left=nx+'px'; el.style.top=ny+'px';
         }
       }
-      _savePos(el.dataset.id, el.style.left, el.style.top);
-      if(_group){ _group.els.forEach(it=>_savePos(it.el.dataset.id, it.el.style.left, it.el.style.top)); }
-      save();
+      _savePos(el.dataset.id, el.style.left, el.style.top); save();
     }
-    _group=null;
   };
   el.addEventListener('touchstart',start,{passive:false});
   el.addEventListener('touchmove',move,{passive:false});
@@ -3238,19 +3205,10 @@ sizePopRange.oninput=()=>{
   const pct=parseInt(sizePopRange.value);
   sizePopVal.textContent=pct+'%';
   const s=pct/100;
-  const tgt=sizePopTarget;
-  const isArrow = tgt.el && tgt.el.closest && tgt.el.closest('#arrows');
-  if(isArrow){
-    // Aplicar el mismo tamaño a TODAS las flechas (4 y 8) como conjunto
-    document.querySelectorAll('#arrows .ab').forEach(a=>{
-      cfg.sizes[a.dataset.id]=s;
-      applyIndividualSize(a.dataset.id);
-    });
-  } else {
-    cfg.sizes[tgt.id]=s;
-    applyIndividualSize(tgt.id);
-  }
-  positionSizePop(tgt.el);
+  cfg.sizes[sizePopTarget.id]=s;
+  applyIndividualSize(sizePopTarget.id);
+  // reposicionar popover (el botón cambió de tamaño)
+  positionSizePop(sizePopTarget.el);
   save();
 };
 sizePopMap.onclick=()=>{
@@ -4297,6 +4255,310 @@ document.querySelectorAll('.resize-handle').forEach(h=>{
     }catch{}
   });
 });
+
+/* ============================================================
+   [PATCH RESPONSIVE] Reposicionado PROPORCIONAL de botones táctiles
+   Mantiene la posición relativa (porcentaje) de cada botón cuando
+   cambia el tamaño del viewport: al estirar/contraer la ventana
+   en PC, o al rotar/redimensionar en móvil, los botones conservan
+   su ubicación correcta sin pegarse al borde.
+   ============================================================ */
+(function(){
+  let _lastLayerSize = null;
+  let _lastMode = null;
+
+  function _layer(){ return document.getElementById('touchLayer'); }
+  function _layerSize(){
+    const l=_layer(); if(!l) return null;
+    const w=l.clientWidth||l.offsetWidth;
+    const h=l.clientHeight||l.offsetHeight;
+    if(w<=0||h<=0) return null;
+    return {w,h};
+  }
+  function _captureBaseline(){
+    const sz=_layerSize(); if(!sz) return;
+    _lastLayerSize=sz;
+    try{ _lastMode=_currentMode(); }catch{ _lastMode=null; }
+  }
+
+  // Reposiciona proporcionalmente cuando el viewport cambia.
+  function _proportionalReflow(){
+    const layer=_layer(); if(!layer) return;
+    const newSz=_layerSize(); if(!newSz) return;
+    let curMode=null; try{ curMode=_currentMode(); }catch{}
+    // Si cambió de modo, el otro flujo (sub-mode change) ya gestiona posiciones.
+    if(_lastMode && curMode && _lastMode!==curMode){
+      _lastLayerSize=newSz; _lastMode=curMode; return;
+    }
+    const old=_lastLayerSize;
+    if(!old || (old.w===newSz.w && old.h===newSz.h)){
+      _lastLayerSize=newSz; return;
+    }
+    const sx = newSz.w/old.w;
+    const sy = newSz.h/old.h;
+    let changed=false;
+    document.querySelectorAll('#touchLayer [data-id]').forEach(el=>{
+      if(el.id==='fsEditBtn') return;
+      const cs=getComputedStyle(el);
+      if(cs.display==='none'||cs.visibility==='hidden') return;
+      const w=el.offsetWidth||40, h=el.offsetHeight||40;
+      const lstr=el.style.left, tstr=el.style.top;
+      let x=parseFloat(lstr), y=parseFloat(tstr);
+      if(!Number.isFinite(x)||!Number.isFinite(y)){
+        const r=el.getBoundingClientRect();
+        const lr=layer.getBoundingClientRect();
+        x=r.left-lr.left; y=r.top-lr.top;
+      }
+      // Centro del botón en proporción del layer viejo
+      const cxFrac = (x + w/2) / old.w;
+      const cyFrac = (y + h/2) / old.h;
+      // Nuevo top-left manteniendo el mismo centro proporcional
+      let nx = cxFrac*newSz.w - w/2;
+      let ny = cyFrac*newSz.h - h/2;
+      const maxX=Math.max(0,newSz.w-w);
+      const maxY=Math.max(0,newSz.h-h);
+      nx=Math.min(Math.max(0,nx),maxX);
+      ny=Math.min(Math.max(0,ny),maxY);
+      el.style.left=nx+'px';
+      el.style.top =ny+'px';
+      el.style.right='auto';
+      el.style.bottom='auto';
+      changed=true;
+    });
+    _lastLayerSize=newSz;
+    _lastMode=curMode||_lastMode;
+    if(changed){
+      try{ persistTouchPositionsForMode(curMode||_currentMode()); }catch{}
+    }
+  }
+
+  // Throttle con rAF para máxima fluidez al estirar la ventana en PC
+  let _rafId=null;
+  function _scheduleReflow(){
+    if(_rafId) return;
+    _rafId=requestAnimationFrame(()=>{
+      _rafId=null;
+      try{ _proportionalReflow(); }catch{}
+    });
+  }
+
+  // Captura baseline inicial
+  window.addEventListener('load', ()=>{
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      _captureBaseline();
+    }));
+  });
+
+  // Reescalado en vivo al cambiar el viewport (PC y móvil)
+  window.addEventListener('resize', _scheduleReflow);
+  window.addEventListener('orientationchange', ()=>{
+    setTimeout(_scheduleReflow, 60);
+    setTimeout(_scheduleReflow, 350);
+  });
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', _scheduleReflow);
+  }
+  // Observa el propio #touchLayer (cubre cambios por entrar/salir fullscreen,
+  // rotación, sliders de "estirar pantalla", etc.)
+  try{
+    const ro=new ResizeObserver(()=>_scheduleReflow());
+    const start=()=>{ const l=_layer(); if(l) ro.observe(l); };
+    if(document.readyState==='complete') start();
+    else window.addEventListener('load', start);
+  }catch{}
+
+  // Tras cambios de modo (fs <-> win, rotación), refresca baseline para que el
+  // siguiente resize parta del nuevo tamaño y no reescale dos veces.
+  document.addEventListener('fullscreenchange', ()=>{
+    setTimeout(_captureBaseline, 250);
+    setTimeout(_captureBaseline, 700);
+  });
+  window.addEventListener('orientationchange', ()=>{
+    setTimeout(_captureBaseline, 800);
+  });
+})();
+
+/* ============================================================
+   [PATCH ZOOM] Soporte completo de zoom del navegador
+   - Detecta cambios de nivel de zoom (Ctrl +/-, pinch, devicePixelRatio).
+   - Reaplica --zoom-comp y reescala POSICIONES proporcionalmente para
+     que cada botón mantenga la misma posición y tamaño relativo aunque
+     cambie el zoom.
+   - Las flechas (4 y 8 direcciones) y el pad nunca se salen del layer:
+     se aplica un clamp por GRUPO al cluster de flechas, manteniendo las
+     posiciones relativas entre sí.
+   ============================================================ */
+(function(){
+  function _layer(){ return document.getElementById('touchLayer'); }
+
+  /* --- Detección robusta de zoom --- */
+  function getZoomLevel(){
+    try{
+      const pinch = (window.visualViewport && window.visualViewport.scale) || 1;
+      let pageZoom = 1;
+      if(window.outerWidth && window.innerWidth && !('ontouchstart' in window)){
+        pageZoom = window.outerWidth / window.innerWidth;
+        if(pageZoom < 0.3 || pageZoom > 5) pageZoom = 1;
+      }
+      return pinch * pageZoom;
+    }catch(_){ return 1; }
+  }
+
+  let _lastZoom = getZoomLevel();
+  let _lastDpr  = window.devicePixelRatio || 1;
+
+  function _onZoomMaybeChanged(){
+    const z   = getZoomLevel();
+    const dpr = window.devicePixelRatio || 1;
+    const zoomChanged = Math.abs(z - _lastZoom) > 0.01;
+    const dprChanged  = Math.abs(dpr - _lastDpr) > 0.01;
+    if(!zoomChanged && !dprChanged) return;
+    _lastZoom = z; _lastDpr = dpr;
+    // Re-aplica compensación visual (mantiene tamaño constante)
+    const layer = _layer();
+    if(layer){
+      const comp = z>0 ? (1/z) : 1;
+      layer.style.setProperty('--zoom-comp', comp.toFixed(4));
+    }
+    // Re-clampa el cluster de flechas y pad para evitar desbordes
+    requestAnimationFrame(()=>{
+      try{ clampArrowClusterToLayer(); }catch{}
+      try{ clampPadClusterToLayer(); }catch{}
+      try{ clampTouchControlsToViewport(); }catch{}
+    });
+  }
+
+  // Polling ligero: la única forma fiable cross-browser de detectar Ctrl +/-
+  setInterval(_onZoomMaybeChanged, 400);
+  window.addEventListener('resize', _onZoomMaybeChanged);
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', _onZoomMaybeChanged);
+    window.visualViewport.addEventListener('scroll', _onZoomMaybeChanged);
+  }
+  try{
+    // Cambios de DPR (incluye zoom en algunos navegadores)
+    const mq = matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+    mq.addEventListener && mq.addEventListener('change', _onZoomMaybeChanged);
+  }catch{}
+
+  /* --- Clamp por GRUPO para las flechas (4 y 8) --- */
+  // Mantiene a TODO el cluster dentro del #touchLayer preservando las
+  // distancias relativas entre flechas. Si se sale por algún lado, traslada
+  // el grupo entero. Si es más grande que el layer, lo escala uniformemente
+  // posicionando cada flecha respecto al centro del cluster.
+  window.clampArrowClusterToLayer = function clampArrowClusterToLayer(){
+    const layer = _layer(); if(!layer) return;
+    const lw = layer.clientWidth, lh = layer.clientHeight;
+    if(lw<=0||lh<=0) return;
+    const arrows = Array.from(document.querySelectorAll('#touchLayer .arrows.on .ab'))
+      .filter(el=>{
+        const cs=getComputedStyle(el);
+        return cs.display!=='none' && cs.visibility!=='hidden'
+          && (el.offsetWidth||0)>0 && (el.offsetHeight||0)>0;
+      });
+    if(arrows.length===0) return;
+    _clampClusterGeneric(arrows, lw, lh);
+  };
+  window.clampPadClusterToLayer = function clampPadClusterToLayer(){
+    const layer = _layer(); if(!layer) return;
+    const lw = layer.clientWidth, lh = layer.clientHeight;
+    if(lw<=0||lh<=0) return;
+    const pad = Array.from(document.querySelectorAll('#touchLayer .pad.on .pbtn'))
+      .filter(el=>{
+        const cs=getComputedStyle(el);
+        return cs.display!=='none' && cs.visibility!=='hidden'
+          && (el.offsetWidth||0)>0 && (el.offsetHeight||0)>0;
+      });
+    if(pad.length===0) return;
+    _clampClusterGeneric(pad, lw, lh);
+  };
+
+  function _clampClusterGeneric(els, lw, lh){
+    // Calcula bbox del cluster en coords del layer
+    const items = els.map(el=>{
+      const x = parseFloat(el.style.left)||0;
+      const y = parseFloat(el.style.top)||0;
+      const w = el.offsetWidth||40;
+      const h = el.offsetHeight||40;
+      return {el,x,y,w,h};
+    });
+    let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+    items.forEach(it=>{
+      if(it.x<minX) minX=it.x;
+      if(it.y<minY) minY=it.y;
+      if(it.x+it.w>maxX) maxX=it.x+it.w;
+      if(it.y+it.h>maxY) maxY=it.y+it.h;
+    });
+    const bw = maxX-minX, bh = maxY-minY;
+    if(bw<=0||bh<=0) return;
+    let dx=0, dy=0;
+    if(minX < 0) dx = -minX;
+    else if(maxX > lw) dx = lw - maxX;
+    if(minY < 0) dy = -minY;
+    else if(maxY > lh) dy = lh - maxY;
+    // Si el cluster es más grande que el layer, escalar uniformemente
+    let scale = 1;
+    if(bw > lw || bh > lh){
+      scale = Math.min(lw/bw, lh/bh);
+    }
+    if(scale === 1 && dx===0 && dy===0) return;
+    // Centro del cluster (después del traslado preliminar)
+    const cx = (minX+maxX)/2 + dx;
+    const cy = (minY+maxY)/2 + dy;
+    items.forEach(it=>{
+      // Posición del centro de cada botón respecto al centro del cluster
+      const ccx = it.x + it.w/2 + dx;
+      const ccy = it.y + it.h/2 + dy;
+      const rx = (ccx - cx) * scale;
+      const ry = (ccy - cy) * scale;
+      let nx = cx + rx - it.w/2;
+      let ny = cy + ry - it.h/2;
+      // Clamp final por seguridad
+      nx = Math.min(Math.max(0,nx), Math.max(0, lw - it.w));
+      ny = Math.min(Math.max(0,ny), Math.max(0, lh - it.h));
+      it.el.style.left = nx+'px';
+      it.el.style.top  = ny+'px';
+      it.el.style.right = 'auto';
+      it.el.style.bottom = 'auto';
+    });
+    try{ persistTouchPositionsForMode(_currentMode()); }catch{}
+  }
+
+  // Lanzar clamp del cluster al cargar y tras eventos relevantes
+  function _clampAll(){
+    try{ clampArrowClusterToLayer(); }catch{}
+    try{ clampPadClusterToLayer(); }catch{}
+  }
+  window.addEventListener('load', ()=>{
+    requestAnimationFrame(()=>requestAnimationFrame(_clampAll));
+  });
+  window.addEventListener('resize', ()=>{
+    clearTimeout(window._clampClusterT);
+    window._clampClusterT = setTimeout(_clampAll, 150);
+  });
+  window.addEventListener('orientationchange', ()=>{
+    setTimeout(_clampAll, 300);
+    setTimeout(_clampAll, 700);
+  });
+  document.addEventListener('fullscreenchange', ()=>{
+    setTimeout(_clampAll, 300);
+    setTimeout(_clampAll, 700);
+  });
+
+  // Cuando cambia entre 4/8 flechas o joystick/flechas/pad, reclampa.
+  try{
+    const obs = new MutationObserver(()=>{
+      clearTimeout(window._clampMutT);
+      window._clampMutT = setTimeout(_clampAll, 80);
+    });
+    const start = ()=>{
+      const targets = ['#arrows','#pad','#touchLayer'].map(s=>document.querySelector(s)).filter(Boolean);
+      targets.forEach(t=> obs.observe(t,{attributes:true,attributeFilter:['class','style']}));
+    };
+    if(document.readyState==='complete') start();
+    else window.addEventListener('load', start);
+  }catch{}
+})();
 </script>
 </body>
 </html>

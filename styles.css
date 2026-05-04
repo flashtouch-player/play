@@ -1,572 +1,511 @@
-/* ============================================================
-   FlashTouch Player — "Minimal Claro Pro" redesign
-   Mantiene 100% de los selectores, IDs, clases y CSS vars
-   utilizados por el JS original. Solo cambia la estética:
-   - Tema claro por defecto, elegante (Apple/Linear style)
-   - Tipografía Inter, tracking ajustado
-   - Bordes finos, radios suaves, sombras sutiles
-   - Acentos azul índigo / verde menta
-   - Tema oscuro disponible vía html[data-theme="dark"]
-   ============================================================ */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* ========== Tema oscuro (default) ========== */
+  :root{
+    --bg:#0f1115; --panel:#171a22; --panel2:#1f2330; --txt:#e8ecf3;
+    --muted:#9aa3b2; --accent:#6ee7b7; --accent2:#60a5fa; --danger:#f87171;
+    --warn:#fbbf24; --ok:#34d399; --border:#2a2f3d;
+    --btn-bg:#1f2330; --btn-shadow:0 4px 12px #000a;
+    --press:#fb923c;          /* naranja tenue al presionar */
+    --press-glow:#fb923c66;
+  }
+  /* ========== Tema claro ========== */
+  html[data-theme="light"]{
+    --bg:#f5f6fa; --panel:#ffffff; --panel2:#eef0f6; --txt:#1a1d24;
+    --muted:#5a6478; --accent:#0d9488; --accent2:#2563eb; --danger:#dc2626;
+    --warn:#d97706; --ok:#059669; --border:#d4d7e0;
+    --btn-bg:#eef0f6; --btn-shadow:0 2px 8px #00000020;
+    --press:#ea580c;
+    --press-glow:#ea580c55;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,Segoe UI,Roboto,sans-serif;transition:background .25s,color .25s}
+  body{min-height:100vh;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;max-width:100vw}
+  main{flex:1 0 auto}
+  #siteFooter{flex-shrink:0;margin-top:auto}
 
-/* ========== Tema CLARO (default) ========== */
-:root{
-  --bg:#f7f8fa; --panel:#ffffff; --panel2:#f1f3f7; --txt:#0b1220;
-  --muted:#5b667a; --accent:#10b981; --accent2:#4f46e5; --danger:#dc2626;
-  --warn:#d97706; --ok:#059669; --border:#e4e7ee;
-  --btn-bg:#ffffff; --btn-shadow:0 1px 2px rgba(15,23,42,.06),0 4px 12px rgba(15,23,42,.05);
-  --press:#4f46e5;
-  --press-glow:rgba(79,70,229,.28);
-}
-/* ========== Tema OSCURO ========== */
-html[data-theme="dark"]{
-  --bg:#0b0d12; --panel:#13161d; --panel2:#1a1e27; --txt:#eef1f7;
-  --muted:#9aa3b6; --accent:#34d399; --accent2:#818cf8; --danger:#f87171;
-  --warn:#fbbf24; --ok:#34d399; --border:#262b36;
-  --btn-bg:#1a1e27; --btn-shadow:0 4px 12px rgba(0,0,0,.45);
-  --press:#818cf8;
-  --press-glow:rgba(129,140,248,.35);
-}
+  /* ===== Header SIN capa superior (no fixed/sticky) — fluye con el contenido ===== */
+  header{
+    position:relative;
+    z-index:1;
+    background:var(--panel);
+    border-bottom:1px solid var(--border);
+    padding:10px 12px;
+  }
+  h1{margin:0 0 8px;font-size:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  /* Filas del header: una sola línea con scroll horizontal (PC y móvil),
+     manteniendo el mismo estilo visual de los botones */
+  .row{
+    display:flex;flex-wrap:nowrap;gap:8px;align-items:center;
+    overflow-x:auto;overflow-y:hidden;
+    scrollbar-width:thin;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:4px;
+  }
+  .row::-webkit-scrollbar{height:6px}
+  .row::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  .row > *{flex:0 0 auto}
+  .row input[type=url]{min-width:160px}
+  button,select,input[type=text],input[type=url],input[type=number],input[type=range]{
+    background:var(--panel2);color:var(--txt);border:1px solid var(--border);
+    border-radius:8px;padding:8px 10px;font-size:13px;cursor:pointer;
+    transition:background .15s,border-color .15s,color .15s
+  }
+  button:hover{border-color:var(--accent2)}
+  button.primary{background:var(--accent2);color:#fff;border-color:var(--accent2);font-weight:600}
+  button.danger{background:var(--danger);color:#fff;border-color:var(--danger);font-weight:600}
+  button.warn{background:var(--warn);color:#220;border-color:var(--warn);font-weight:600}
+  button.ok{background:var(--ok);color:#fff;border-color:var(--ok);font-weight:600}
+  input[type=file]{color:var(--muted)}
+  label.chk{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer}
 
-*{box-sizing:border-box}
-html,body{
-  margin:0;background:var(--bg);color:var(--txt);
-  font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
-  letter-spacing:-0.01em;
-  transition:background .25s,color .25s
-}
-body{
-  min-height:100vh;overflow-y:auto;overflow-x:hidden;
-  -webkit-overflow-scrolling:touch;
-  display:flex;flex-direction:column;max-width:100vw;
-}
-main{flex:1 0 auto}
-#siteFooter{flex-shrink:0;margin-top:auto}
+  main{padding:12px;padding-bottom:calc(260px + env(safe-area-inset-bottom))}
 
-/* ===== Header limpio ===== */
-header{
-  position:relative;z-index:1;
-  background:var(--panel);
-  border-bottom:1px solid var(--border);
-  padding:14px 18px;
-  backdrop-filter:saturate(1.2);
-}
-h1{
-  margin:0 0 12px;font-size:15px;font-weight:600;
-  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-  letter-spacing:-0.02em;color:var(--txt);
-}
+  /* ===== Footer ===== */
+  #siteFooter{
+    position:relative;
+    z-index:1;
+    background:var(--panel);
+    border-top:1px solid var(--border);
+    color:var(--muted);
+    text-align:center;
+    padding:14px 12px calc(14px + env(safe-area-inset-bottom));
+    font-size:13px;
+    letter-spacing:.3px;
+  }
+  #siteFooter span{opacity:.85}
+  body.fs-active #siteFooter{display:none}
+  #stage{position:relative;width:min(calc(960px * var(--stage-scale, 1)), 100%);max-width:100%;margin:0 auto;aspect-ratio:4/3;background:#000;border:1px solid var(--border);border-radius:12px;overflow:hidden;box-sizing:border-box;transition:width .08s linear,height .08s linear}
+  #player{position:absolute;inset:var(--stage-pad,0px);width:auto;height:auto;transform:scale(var(--game-zoom,1));transform-origin:center center;transition:transform .08s linear,inset .12s linear;image-rendering:var(--game-img-rendering, auto);filter:var(--game-quality-filter, none)}
+  #player canvas, #player video, #player img, #player iframe, #player embed, #player object{image-rendering:var(--game-img-rendering, auto) !important; filter:var(--game-quality-filter, none) !important}
+  .empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);text-align:center;padding:20px;font-size:14px}
 
-.row{
-  display:flex;flex-wrap:nowrap;gap:8px;align-items:center;
-  overflow-x:auto;overflow-y:hidden;
-  scrollbar-width:thin;
-  -webkit-overflow-scrolling:touch;
-  padding-bottom:6px;
-}
-.row::-webkit-scrollbar{height:6px}
-.row::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-.row > *{flex:0 0 auto}
-.row input[type=url]{min-width:180px}
-
-/* ===== Inputs y botones ===== */
-button,select,input[type=text],input[type=url],input[type=number],input[type=range]{
-  background:var(--panel);
-  color:var(--txt);
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:8px 12px;
-  font-size:13px;
-  font-family:inherit;
-  font-weight:500;
-  cursor:pointer;
-  transition:background .15s,border-color .15s,color .15s,box-shadow .15s,transform .05s;
-}
-button:hover{border-color:var(--accent2);background:var(--panel2)}
-button:active{transform:translateY(1px)}
-button:focus-visible{outline:none;box-shadow:0 0 0 3px var(--press-glow)}
-input[type=text]:focus,input[type=url]:focus,input[type=number]:focus,select:focus{
-  outline:none;border-color:var(--accent2);box-shadow:0 0 0 3px var(--press-glow);
-}
-button.primary{background:var(--accent2);color:#fff;border-color:var(--accent2);font-weight:600;box-shadow:var(--btn-shadow)}
-button.primary:hover{background:#4338ca;border-color:#4338ca}
-html[data-theme="dark"] button.primary:hover{background:#6366f1;border-color:#6366f1}
-button.danger{background:var(--danger);color:#fff;border-color:var(--danger);font-weight:600}
-button.danger:hover{background:#b91c1c;border-color:#b91c1c}
-button.warn{background:var(--warn);color:#fff;border-color:var(--warn);font-weight:600}
-button.warn:hover{background:#b45309;border-color:#b45309}
-button.ok{background:var(--ok);color:#fff;border-color:var(--ok);font-weight:600}
-button.ok:hover{background:#047857;border-color:#047857}
-input[type=file]{color:var(--muted);font-size:12px}
-label.chk{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;font-weight:500}
-
-main{padding:18px;padding-bottom:calc(260px + env(safe-area-inset-bottom))}
-
-/* ===== Footer ===== */
-#siteFooter{
-  position:relative;z-index:1;
-  background:var(--panel);
-  border-top:1px solid var(--border);
-  color:var(--muted);
-  text-align:center;
-  padding:18px 12px calc(18px + env(safe-area-inset-bottom));
-  font-size:12px;
-  letter-spacing:.02em;
-}
-#siteFooter span{opacity:.85}
-body.fs-active #siteFooter{display:none}
-
-/* ===== Stage / reproductor ===== */
-#stage{
-  position:relative;
-  width:min(calc(960px * var(--stage-scale, 1)), 100%);
-  max-width:100%;
-  margin:0 auto;
-  aspect-ratio:4/3;
-  background:#000;
-  border:1px solid var(--border);
-  border-radius:14px;
-  overflow:hidden;box-sizing:border-box;
-  box-shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px rgba(15,23,42,.08);
-  transition:width .08s linear,height .08s linear,box-shadow .25s;
-}
-html[data-theme="dark"] #stage{box-shadow:0 12px 32px rgba(0,0,0,.5)}
-#player{
-  position:absolute;inset:var(--stage-pad,0px);
-  width:auto;height:auto;
-  transform:scale(var(--game-zoom,1));
-  transform-origin:center center;
-  transition:transform .08s linear,inset .12s linear;
-  image-rendering:var(--game-img-rendering, auto);
-  filter:var(--game-quality-filter, none);
-}
-#player canvas, #player video, #player img, #player iframe, #player embed, #player object{
-  image-rendering:var(--game-img-rendering, auto) !important;
-  filter:var(--game-quality-filter, none) !important;
-}
-.empty{
-  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  color:#94a3b8;text-align:center;padding:24px;font-size:14px;font-weight:500;
-}
-
-/* ===== Touch overlay ===== */
-#touchLayer{
-  position:fixed;left:0;right:0;top:0;bottom:0;
-  width:100%;height:100%;
-  pointer-events:none;
-  z-index:50;
-  padding-bottom:env(safe-area-inset-bottom);
-  opacity:var(--ctrl-opacity, 1);
-  transition:opacity .2s;
-  zoom: var(--zoom-comp, 1);
-  overflow:hidden;
-}
-#touchLayer.hidden{display:none}
-.floating{position:absolute;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none}
-
-/* Joystick */
-.joy{
-  width:calc(130px * var(--btn-scale, 1) * var(--ind-scale, 1));
-  height:calc(130px * var(--btn-scale, 1) * var(--ind-scale, 1));
-  border-radius:50%;
-  background:radial-gradient(circle at 30% 30%, #ffffff 0%, #e5e7ef 60%, #cbd0db 100%);
-  border:1px solid var(--border);
-  box-shadow:inset 0 2px 6px rgba(255,255,255,.7), 0 6px 16px rgba(15,23,42,.12);
-  display:flex;align-items:center;justify-content:center;
-  left:16px;bottom:24px;
-}
-html[data-theme="dark"] .joy{
-  background:radial-gradient(circle at 30% 30%, #2a3142 0%, #1a1e27 70%, #0f1218 100%);
-  box-shadow:inset 0 2px 6px rgba(255,255,255,.05), 0 6px 16px rgba(0,0,0,.5);
-}
-.joy .stick{
-  width:calc(54px * var(--btn-scale, 1) * var(--ind-scale, 1));
-  height:calc(54px * var(--btn-scale, 1) * var(--ind-scale, 1));
-  border-radius:50%;
-  background:linear-gradient(145deg,#ffffff,#dde1ea);
-  border:2px solid var(--accent2);
-  box-shadow:var(--btn-shadow);
-}
-html[data-theme="dark"] .joy .stick{background:linear-gradient(145deg,#3a4255,#1c2030)}
-
-/* Flechas */
-.arrows{display:none}
-.arrows.on{display:block}
-.arrows .ab.diag{display:none}
-.arrows.eight .ab.diag{display:flex}
-.ab{
-  position:absolute;
-  width:calc(52px * var(--btn-scale, 1) * var(--ind-scale, 1));
-  height:calc(52px * var(--btn-scale, 1) * var(--ind-scale, 1));
-  background:var(--btn-bg);
-  border:1px solid var(--border);
-  border-radius:12px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:calc(18px * var(--btn-scale, 1) * var(--ind-scale, 1));
-  color:var(--txt);font-weight:600;
-  pointer-events:auto;touch-action:none;
-  user-select:none;-webkit-user-select:none;
-  box-shadow:var(--btn-shadow);
-  transition:background .08s,box-shadow .08s,border-color .08s,width .15s,height .15s,transform .05s;
-}
-
-/* Pad */
-.pad{display:none}
-.pad.on{display:block}
-.pbtn{
-  position:absolute;
-  width:calc(54px * var(--btn-scale, 1) * var(--ind-scale, 1));
-  height:calc(54px * var(--btn-scale, 1) * var(--ind-scale, 1));
-  background:var(--btn-bg);
-  border:1px solid var(--border);
-  border-radius:14px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:calc(14px * var(--btn-scale, 1) * var(--ind-scale, 1));
-  font-weight:600;color:var(--txt);
-  pointer-events:auto;touch-action:none;
-  user-select:none;-webkit-user-select:none;
-  box-shadow:var(--btn-shadow);
-  transition:background .08s,box-shadow .08s,border-color .08s,width .15s,height .15s,transform .05s;
-}
-
-/* Botón seleccionado en edición */
-.editing .floating.is-selected,.editing .ab.is-selected,.editing .pbtn.is-selected{
-  outline:2px solid var(--accent2);
-  box-shadow:0 0 0 4px var(--press-glow);
-}
-
-/* Popover de tamaño */
-#sizePop{
-  position:fixed;display:none;z-index:9998;
-  background:var(--panel);
-  border:1px solid var(--accent2);
-  border-radius:12px;
-  padding:10px 12px;
-  box-shadow:0 10px 32px rgba(15,23,42,.18);
-  align-items:center;gap:10px;font-size:12px;color:var(--txt);
-  min-width:220px;
-}
-#sizePop.on{display:flex}
-#sizePop input[type=range]{flex:1;min-width:100px;padding:0;margin:0}
-#sizePop .lbl{color:var(--muted);font-size:11px;white-space:nowrap;font-weight:500}
-#sizePop .val{font-weight:700;color:var(--accent2);min-width:36px;text-align:right}
-#sizePop button{padding:4px 8px;font-size:11px}
-
-/* Header colapsable */
-header.collapsed .row{display:none}
-
-/* ===== Press state ===== */
-.ab.is-pressed,.pbtn.is-pressed,
-.ab:active,.pbtn:active{
-  background:var(--press)!important;
-  color:#fff!important;
-  border-color:var(--press)!important;
-  box-shadow:0 0 0 4px var(--press-glow), 0 4px 12px rgba(15,23,42,.18);
-  transform:scale(.96);
-}
-
-/* Edit mode highlight */
-.editing .floating,.editing .ab,.editing .pbtn{
-  outline:2px dashed var(--warn);
-  background-color:rgba(217,119,6,.12);
-}
-.editing .ab,.editing .pbtn,.editing .floating{cursor:move}
-.delBadge{
-  position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;
-  background:var(--danger);color:#fff;font-size:13px;line-height:20px;text-align:center;
-  border:2px solid var(--bg);display:none;cursor:pointer;font-weight:700;z-index:5;
-  box-shadow:0 2px 6px rgba(220,38,38,.4);
-}
-.editing .delBadge{display:block}
-
-/* Modal */
-.modal{
-  position:fixed;inset:0;
-  background:rgba(15,23,42,.45);
-  backdrop-filter:blur(8px);
-  display:none;align-items:center;justify-content:center;
-  z-index:100;padding:16px;pointer-events:none;
-}
-.modal.on{display:flex;pointer-events:auto}
-.modal .box{
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:20px;
-  max-width:480px;width:100%;max-height:90vh;overflow-y:auto;
-  box-shadow:0 20px 50px rgba(15,23,42,.2);
-}
-.modal h3{margin:0 0 14px;font-size:16px;font-weight:600;letter-spacing:-0.01em}
-.modal .field{margin-bottom:12px}
-.modal label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;font-weight:500}
-.modal input,.modal select{width:100%}
-.status{padding:10px;border-radius:10px;font-size:12px;margin-top:10px;text-align:center;font-weight:500}
-.status.detect{background:rgba(217,119,6,.12);color:var(--warn);border:1px solid rgba(217,119,6,.25)}
-.status.saved{background:rgba(5,150,105,.12);color:var(--ok);border:1px solid rgba(5,150,105,.25)}
-.status.idle{background:var(--panel2);color:var(--muted);border:1px solid var(--border)}
-.hint{font-size:11px;color:var(--muted);margin-top:5px}
-.panel{
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:12px;
-  padding:14px;
-  margin-bottom:12px;
-  box-shadow:0 1px 2px rgba(15,23,42,.04);
-}
-.panel h4{margin:0 0 10px;font-size:13px;font-weight:600;color:var(--accent2);letter-spacing:-0.01em}
-
-/* Toggle tema */
-.iconBtn{
-  width:36px;height:36px;padding:0;
-  display:inline-flex;align-items:center;justify-content:center;
-  font-size:16px;border-radius:10px;
-}
-
-/* ===== Pantalla completa ===== */
-#stage:fullscreen{width:100vw;height:100vh;background:#000;border:none;border-radius:0}
-#stage:-webkit-full-screen{width:100vw;height:100vh}
-@media (orientation:portrait){
-  #stage:fullscreen{
-    transform:rotate(90deg);
-    transform-origin:center center;
-    width:100vh;height:100vw;
+  /* ===== Touch overlay =====
+     Cubre TODA la pantalla (no sólo los 240px inferiores) para que los botones
+     táctiles puedan moverse libremente por toda el área visible en vertical,
+     horizontal y fullscreen, sin que se salgan ni queden recortados.
+     pointer-events:none → la capa no bloquea clicks; cada botón interno usa
+     pointer-events:auto para seguir siendo interactivo. */
+  #touchLayer{
     position:fixed;
-    top:50%;left:50%;
-    margin-top:calc(-50vw);
-    margin-left:calc(-50vh);
+    left:0;right:0;top:0;bottom:0;
+    width:100%;height:100%;
+    pointer-events:none;
+    z-index:50;
+    padding-bottom:env(safe-area-inset-bottom);
+    opacity:var(--ctrl-opacity, 1);
+    transition:opacity .2s;
+    /* Compensación de zoom del navegador: mantiene los controles táctiles
+       siempre del mismo tamaño aunque el usuario haga zoom in/out (Ctrl +/-, pinch). */
+    zoom: var(--zoom-comp, 1);
+    overflow:hidden; /* refuerzo extra: nunca desbordar la pantalla */
   }
-  body.fs-rotated #touchLayer{
+  #touchLayer.hidden{display:none}
+  .floating{position:absolute;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none}
+
+  /* Joystick (tamaño escalable vía --btn-scale global * --ind-scale individual) */
+  .joy{
+    width:calc(130px * var(--btn-scale, 1) * var(--ind-scale, 1));
+    height:calc(130px * var(--btn-scale, 1) * var(--ind-scale, 1));
+    border-radius:50%;background:radial-gradient(circle,#222a 0%,#111c 70%);
+    border:2px solid var(--border);display:flex;align-items:center;justify-content:center;
+    left:16px;bottom:24px
+  }
+  html[data-theme="light"] .joy{background:radial-gradient(circle,#dde1ea 0%,#aeb5c4 70%)}
+  .joy .stick{
+    width:calc(54px * var(--btn-scale, 1) * var(--ind-scale, 1));
+    height:calc(54px * var(--btn-scale, 1) * var(--ind-scale, 1));
+    border-radius:50%;background:linear-gradient(145deg,#3a4255,#1c2030);
+    border:2px solid var(--accent2);box-shadow:var(--btn-shadow)
+  }
+  html[data-theme="light"] .joy .stick{background:linear-gradient(145deg,#fff,#cbd0db)}
+
+  /* Flechas */
+  .arrows{display:none}
+  .arrows.on{display:block}
+  /* Diagonales: sólo visibles cuando #arrows tiene la clase .eight */
+  .arrows .ab.diag{display:none}
+  .arrows.eight .ab.diag{display:flex}
+  .ab{
+    position:absolute;
+    width:calc(52px * var(--btn-scale, 1) * var(--ind-scale, 1));
+    height:calc(52px * var(--btn-scale, 1) * var(--ind-scale, 1));
+    background:var(--btn-bg);border:1px solid var(--border);border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:calc(18px * var(--btn-scale, 1) * var(--ind-scale, 1));
+    color:var(--txt);font-weight:600;pointer-events:auto;touch-action:none;
+    user-select:none;-webkit-user-select:none;
+    transition:background .08s,box-shadow .08s,border-color .08s,width .15s,height .15s
+  }
+
+  /* Pad */
+  .pad{display:none}
+  .pad.on{display:block}
+  .pbtn{
+    position:absolute;
+    width:calc(54px * var(--btn-scale, 1) * var(--ind-scale, 1));
+    height:calc(54px * var(--btn-scale, 1) * var(--ind-scale, 1));
+    background:var(--btn-bg);border:1px solid var(--border);border-radius:12px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:calc(14px * var(--btn-scale, 1) * var(--ind-scale, 1));
+    font-weight:600;color:var(--txt);pointer-events:auto;touch-action:none;
+    user-select:none;-webkit-user-select:none;
+    transition:background .08s,box-shadow .08s,border-color .08s,width .15s,height .15s
+  }
+
+  /* Botón seleccionado en edición (para mostrar barrita de tamaño) */
+  .editing .floating.is-selected,.editing .ab.is-selected,.editing .pbtn.is-selected{
+    outline:2px solid var(--accent2);
+    box-shadow:0 0 0 4px var(--press-glow);
+  }
+
+  /* Popover flotante de tamaño (barrita) */
+  #sizePop{
+    position:fixed;display:none;z-index:9998;
+    background:var(--panel);border:1px solid var(--accent2);border-radius:10px;
+    padding:8px 10px;box-shadow:0 6px 20px #0008;
+    align-items:center;gap:8px;font-size:12px;color:var(--txt);
+    min-width:200px;
+  }
+  #sizePop.on{display:flex}
+  #sizePop input[type=range]{flex:1;min-width:100px;padding:0;margin:0}
+  #sizePop .lbl{color:var(--muted);font-size:11px;white-space:nowrap}
+  #sizePop .val{font-weight:700;color:var(--accent2);min-width:36px;text-align:right}
+  #sizePop button{padding:4px 8px;font-size:11px}
+
+  /* Header colapsable: solo se ocultan los .row, conservando h1 y el toggle */
+  header.collapsed .row{display:none}
+
+  /* ===== Naranja tenue al presionar ===== */
+  .ab.is-pressed,.pbtn.is-pressed,
+  .ab:active,.pbtn:active{
+    background:var(--press)!important;
+    color:#fff!important;
+    border-color:var(--press)!important;
+    box-shadow:0 0 14px var(--press-glow), inset 0 0 8px #00000022;
+  }
+
+  /* Edit mode highlight */
+  .editing .floating,.editing .ab,.editing .pbtn{outline:2px dashed var(--warn);background-color:#fbbf2422}
+  .editing .ab,.editing .pbtn,.editing .floating{cursor:move}
+  /* Botón borrar (X) en edición */
+  .delBadge{
+    position:absolute;top:-8px;right:-8px;width:20px;height:20px;border-radius:50%;
+    background:var(--danger);color:#fff;font-size:13px;line-height:18px;text-align:center;
+    border:2px solid var(--bg);display:none;cursor:pointer;font-weight:700;z-index:5;
+  }
+  .editing .delBadge{display:block}
+
+  /* Modal — por defecto OCULTO Y SIN bloquear clicks (defensa contra modales
+     fantasma que pudieran quedar tapando los botones de la página en PC) */
+  .modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:100;padding:12px;pointer-events:none}
+  .modal.on{display:flex;pointer-events:auto}
+  .modal .box{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;max-width:460px;width:100%;max-height:90vh;overflow-y:auto}
+  .modal h3{margin:0 0 10px;font-size:15px}
+  .modal .field{margin-bottom:10px}
+  .modal label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+  .modal input,.modal select{width:100%}
+  .status{padding:8px;border-radius:8px;font-size:12px;margin-top:8px;text-align:center}
+  .status.detect{background:var(--warn);color:#220}
+  .status.saved{background:var(--ok);color:#fff}
+  .status.idle{background:var(--panel2);color:var(--muted)}
+  .hint{font-size:11px;color:var(--muted);margin-top:4px}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:10px}
+  .panel h4{margin:0 0 8px;font-size:13px;color:var(--accent2)}
+
+  /* Toggle tema */
+  .iconBtn{width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:16px}
+
+  /* ===== Pantalla completa: forzar landscape en móviles ===== */
+  #stage:fullscreen{width:100vw;height:100vh;background:#000;border:none;border-radius:0}
+  #stage:-webkit-full-screen{width:100vw;height:100vh}
+  /* En portrait dentro de fullscreen, rotamos 90° */
+  @media (orientation:portrait){
+    #stage:fullscreen{
+      transform:rotate(90deg);
+      transform-origin:center center;
+      width:100vh;
+      height:100vw;
+      position:fixed;
+      top:50%;left:50%;
+      margin-top:calc(-50vw);
+      margin-left:calc(-50vh);
+    }
+    /* La capa táctil dentro de fullscreen también se rota */
+    /* La capa táctil dentro de fullscreen también se rota.
+       Cubre TODA el área rotada para que los botones se puedan mover libremente
+       por toda la pantalla y nunca se salgan de los bordes. */
+    body.fs-rotated #touchLayer{
+      position:fixed;
+      transform:rotate(90deg);
+      transform-origin:center center;
+      width:100vh;height:100vw;
+      top:calc(50% - 50vw);
+      left:calc(50% - 50vh);
+      z-index:9999;
+    }
+  }
+  body.fs-active #touchLayer{z-index:9999}
+  /* En pantalla completa, mostrar los botones táctiles aunque la capa esté
+     marcada como .hidden — PERO solo si el usuario NO ha desactivado los
+     controles táctiles desde el panel (body.touch-off). */
+  body.fs-active:not(.touch-off) #touchLayer.hidden{display:block !important}
+
+  /* Ayuda en fullscreen: ocultar header y main, mostrar solo stage + touch */
+  body.fs-active header,body.fs-active main > .panel,body.fs-active #emptyMsg{}
+
+  /* En fullscreen, mostrar la barra de estiramiento como overlay para
+     que los botones (Ancho, Alto, Zoom, Tamaño ventana, Reset) sigan visibles */
+  body.fs-active.stretch-on #stretchBar{
+    display:flex;flex-wrap:wrap;
+    position:fixed;left:50%;top:8px;transform:translateX(-50%);
+    z-index:10000;max-width:96vw;width:auto;
+    background:rgba(20,20,20,.85);backdrop-filter:blur(6px);
+    margin:0;
+  }
+
+  /* ===== Controles que SOLO aparecen en pantalla completa =====
+     Se ocultan por defecto y se muestran cuando body.fs-active está activo
+     y la barra de estiramiento es visible. */
+  #stretchBar .fs-only{display:none !important}
+  body.fs-active.stretch-on #stretchBar .fs-only{display:inline-flex !important}
+  body.fs-active.stretch-on #stretchBar input[type=range].fs-only{display:inline-block !important}
+
+  /* ===== Recorte lateral =====
+     Elimina los laterales (bordes negros/blancos) del juego escalando el
+     reproductor horizontalmente y recortando con clip-path, de modo que el
+     área visible quede llenando el ancho del stage. Funciona en ventana y
+     en pantalla completa. --side-crop-pct va de 0 a 30 (porcentaje). */
+  #stage{ --side-crop-pct: 0; background:#000; }
+  #player{
+    /* El factor de escala horizontal: 100/(100 - 2*pct) */
+    --side-crop-scale: calc(100 / (100 - 2 * var(--side-crop-pct, 0)));
+    transform-origin: 50% 50%;
+    transform: scaleX(var(--side-crop-scale, 1));
+    clip-path: inset(0 calc(var(--side-crop-pct, 0) * 1%) 0 calc(var(--side-crop-pct, 0) * 1%));
+    will-change: transform, clip-path;
+  }
+
+  /* Botón flotante de edición visible en pantalla completa
+     (PC y móvil) para mover/mapear botones táctiles.
+     Mantiene el MISMO aspecto visual que los botones táctiles (.pbtn)
+     y respeta la visibilidad configurada en ⚙️ Calibrar (--ctrl-opacity). */
+  #fsEditBtn{
+    display:none;
+    position:fixed;top:10px;left:10px;z-index:10001;
+    width:calc(54px * var(--btn-scale, 1));
+    height:calc(54px * var(--btn-scale, 1));
+    background:var(--btn-bg);
+    border:1px solid var(--border);
+    border-radius:12px;
+    color:var(--txt);
+    font-size:calc(20px * var(--btn-scale, 1));
+    font-weight:600;
+    cursor:pointer;
+    box-shadow:var(--btn-shadow);
+    align-items:center;justify-content:center;
+    padding:0;
+    opacity:var(--ctrl-opacity, 1);
+    -webkit-tap-highlight-color:transparent;
+    transition:background .12s,box-shadow .12s,border-color .12s,transform .1s,opacity .2s;
+  }
+  #fsEditBtn:active{transform:scale(.94)}
+  #fsEditBtn.active{
+    background:var(--press)!important;color:#fff!important;
+    border-color:var(--press)!important;
+    box-shadow:0 0 14px var(--press-glow), inset 0 0 8px #00000022;
+  }
+  body.fs-active #fsEditBtn{display:inline-flex}
+  /* Si los controles táctiles están desactivados, ocultar TAMBIÉN el botón ✏️ flotante en fullscreen */
+  body.touch-off #fsEditBtn,
+  body.fs-active.touch-off #fsEditBtn{display:none !important}
+  /* Y ocultar la capa táctil sin importar el contexto */
+  body.touch-off #touchLayer{display:none !important}
+
+  /* Permitir que la barra de estiramiento se oculte con botón OK
+     sin desactivar el modo "Estirar pantalla". */
+  body.stretch-hidden #stretchBar{display:none !important}
+
+  /* En fullscreen, mostrar modal de mapeo, calibración, volumen y popover de tamaño dentro del stage */
+  body.fs-active #mapModal,
+  body.fs-active #settingsModal,
+  body.fs-active #volumeModal,
+  body.fs-active #configModal,
+  body.fs-active #helpModal,
+  body.fs-active #qualityModal,
+  body.fs-active #sizePop{z-index:100000}
+
+  /* ===== Menú desplegable del botón ✏️ flotante (pantalla completa) ===== */
+  #fsEditMenu{
+    display:none;
     position:fixed;
-    transform:rotate(90deg);
-    transform-origin:center center;
-    width:100vh;height:100vw;
-    top:calc(50% - 50vw);
-    left:calc(50% - 50vh);
-    z-index:9999;
+    top:calc(10px + 54px * var(--btn-scale, 1) + 6px);
+    left:10px;
+    z-index:100001;
+    min-width:210px;
+    /* Limitar la altura para que NUNCA se salga de la pantalla, y agregar
+       scroll interno cuando hay muchas opciones (especialmente en móvil
+       horizontal donde el alto disponible es reducido). */
+    max-height:calc(100vh - 10px - 54px * var(--btn-scale, 1) - 16px);
+    max-height:calc(100dvh - 10px - 54px * var(--btn-scale, 1) - 16px);
+    overflow-y:auto;
+    overflow-x:hidden;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    background:var(--panel, #1a1f2e);
+    border:1px solid var(--border, #2a3142);
+    border-radius:10px;
+    padding:6px;
+    box-shadow:0 8px 24px rgba(0,0,0,.45);
+    flex-direction:column;
+    gap:2px;
   }
-}
-body.fs-active #touchLayer{z-index:9999}
-body.fs-active:not(.touch-off) #touchLayer.hidden{display:block !important}
-
-body.fs-active header,body.fs-active main > .panel,body.fs-active #emptyMsg{}
-
-body.fs-active.stretch-on #stretchBar{
-  display:flex;flex-wrap:wrap;
-  position:fixed;left:50%;top:8px;transform:translateX(-50%);
-  z-index:10000;max-width:96vw;width:auto;
-  background:rgba(20,20,20,.85);backdrop-filter:blur(8px);
-  margin:0;
-}
-
-#stretchBar .fs-only{display:none !important}
-body.fs-active.stretch-on #stretchBar .fs-only{display:inline-flex !important}
-body.fs-active.stretch-on #stretchBar input[type=range].fs-only{display:inline-block !important}
-
-/* ===== Recorte lateral ===== */
-#stage{ --side-crop-pct: 0; background:#000; }
-#player{
-  --side-crop-scale: calc(100 / (100 - 2 * var(--side-crop-pct, 0)));
-  transform-origin: 50% 50%;
-  transform: scaleX(var(--side-crop-scale, 1));
-  clip-path: inset(0 calc(var(--side-crop-pct, 0) * 1%) 0 calc(var(--side-crop-pct, 0) * 1%));
-  will-change: transform, clip-path;
-}
-
-/* Botón flotante de edición en fullscreen */
-#fsEditBtn{
-  display:none;
-  position:fixed;top:12px;left:12px;z-index:10001;
-  width:calc(54px * var(--btn-scale, 1));
-  height:calc(54px * var(--btn-scale, 1));
-  background:var(--btn-bg);
-  border:1px solid var(--border);
-  border-radius:14px;
-  color:var(--txt);
-  font-size:calc(20px * var(--btn-scale, 1));
-  font-weight:600;
-  cursor:pointer;
-  box-shadow:var(--btn-shadow);
-  align-items:center;justify-content:center;
-  padding:0;
-  opacity:var(--ctrl-opacity, 1);
-  -webkit-tap-highlight-color:transparent;
-  transition:background .12s,box-shadow .12s,border-color .12s,transform .1s,opacity .2s;
-}
-#fsEditBtn:active{transform:scale(.94)}
-#fsEditBtn.active{
-  background:var(--press)!important;color:#fff!important;
-  border-color:var(--press)!important;
-  box-shadow:0 0 0 4px var(--press-glow);
-}
-body.fs-active #fsEditBtn{display:inline-flex}
-body.touch-off #fsEditBtn,
-body.fs-active.touch-off #fsEditBtn{display:none !important}
-body.touch-off #touchLayer{display:none !important}
-
-body.stretch-hidden #stretchBar{display:none !important}
-
-body.fs-active #mapModal,
-body.fs-active #settingsModal,
-body.fs-active #volumeModal,
-body.fs-active #configModal,
-body.fs-active #helpModal,
-body.fs-active #qualityModal,
-body.fs-active #sizePop{z-index:100000}
-
-/* ===== Menú flotante en fullscreen ===== */
-#fsEditMenu{
-  display:none;
-  position:fixed;
-  top:calc(12px + 54px * var(--btn-scale, 1) + 6px);
-  left:12px;
-  z-index:100001;
-  min-width:220px;
-  max-height:calc(100vh - 12px - 54px * var(--btn-scale, 1) - 18px);
-  max-height:calc(100dvh - 12px - 54px * var(--btn-scale, 1) - 18px);
-  overflow-y:auto;overflow-x:hidden;
-  overscroll-behavior:contain;
-  -webkit-overflow-scrolling:touch;
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:12px;
-  padding:6px;
-  box-shadow:0 12px 28px rgba(15,23,42,.18);
-  flex-direction:column;gap:2px;
-}
-#fsEditMenu::-webkit-scrollbar{width:8px}
-#fsEditMenu::-webkit-scrollbar-track{background:transparent}
-#fsEditMenu::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px}
-#fsEditMenu::-webkit-scrollbar-thumb:hover{background:var(--accent2)}
-#fsEditMenu.on{display:flex}
-#fsEditMenu button{
-  background:transparent;border:0;
-  color:var(--txt);
-  text-align:left;
-  padding:10px 12px;
-  border-radius:8px;
-  font-size:14px;font-weight:500;
-  cursor:pointer;white-space:nowrap;
-  transition:background .12s;
-}
-#fsEditMenu button:hover,
-#fsEditMenu button:focus-visible{background:var(--panel2);outline:none}
-#fsEditMenu button.active{
-  background:var(--accent2);color:#fff;
-}
-body.touch-off #fsEditMenu{display:none !important}
-
-/* ===== Responsive ===== */
-@media (max-width:600px){
-  header{padding:12px 14px}
-  h1{font-size:14px}
-  button,select,input{font-size:12px;padding:7px 10px}
-  main{padding:12px;padding-bottom:calc(250px + env(safe-area-inset-bottom))}
-  .joy{left:10px;bottom:18px}
-  #touchLayer{--mobile-scale:0.85}
-  .joy{width:calc(130px * var(--btn-scale, 1) * var(--ind-scale, 1) * var(--mobile-scale, 1));
-       height:calc(130px * var(--btn-scale, 1) * var(--ind-scale, 1) * var(--mobile-scale, 1))}
-  .joy .stick{width:calc(54px * var(--btn-scale, 1) * var(--ind-scale, 1) * var(--mobile-scale, 1));
-              height:calc(54px * var(--btn-scale, 1) * var(--ind-scale, 1) * var(--mobile-scale, 1))}
-  .ab{width:calc(52px * var(--btn-scale, 1) * var(--ind-scale, 1) * var(--mobile-scale, 1));
-      height:calc(52px * var(--btn-scale, 1) * var(--ind-scale, 1) * var(--mobile-scale, 1));
-      font-size:calc(18px * var(--btn-scale, 1) * var(--ind-scale, 1) * var(--mobile-scale, 1))}
-  .pbtn{width:calc(54px * var(--btn-scale, 1) * var(--ind-scale, 1) * var(--mobile-scale, 1));
-        height:calc(54px * var(--btn-scale, 1) * var(--ind-scale, 1) * var(--mobile-scale, 1));
-        font-size:calc(14px * var(--btn-scale, 1) * var(--ind-scale, 1) * var(--mobile-scale, 1))}
-}
-
-/* ===== Landscape sin fullscreen ===== */
-@media (orientation:landscape) and (max-height:700px){
-  main{padding:8px;padding-bottom:calc(220px + env(safe-area-inset-bottom))}
-  body:not(.stretch-on) #stage:not(:fullscreen){
-    height:50vh;max-height:50vh;width:auto;max-width:100%;
-    aspect-ratio:4/3;margin:0 auto;
+  /* Scrollbar discreto a juego con el diseño del menú */
+  #fsEditMenu::-webkit-scrollbar{width:8px}
+  #fsEditMenu::-webkit-scrollbar-track{background:transparent}
+  #fsEditMenu::-webkit-scrollbar-thumb{
+    background:var(--border, #2a3142);
+    border-radius:6px;
   }
+  #fsEditMenu::-webkit-scrollbar-thumb:hover{background:var(--press, #3b82f6)}
+  #fsEditMenu.on{display:flex}
+  #fsEditMenu button{
+    background:transparent;
+    border:0;
+    color:var(--txt, #e6e9f2);
+    text-align:left;
+    padding:9px 12px;
+    border-radius:7px;
+    font-size:14px;
+    font-weight:500;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:background .12s;
+  }
+  #fsEditMenu button:hover,
+  #fsEditMenu button:focus-visible{background:var(--btn-bg, #2a3142);outline:none}
+  #fsEditMenu button.active{
+    background:var(--press, #3b82f6);
+    color:#fff;
+  }
+  /* Cuando los controles táctiles están desactivados, también ocultar el menú */
+  body.touch-off #fsEditMenu{display:none !important}
+
+  /* ===== Responsive ===== */
+  @media (max-width:600px){
+    h1{font-size:15px}
+    button,select,input{font-size:12px;padding:7px 9px}
+    main{padding:8px;padding-bottom:calc(250px + env(safe-area-inset-bottom))}
+    /* IMPORTANTE: NO fijar width/height aquí — debe respetar --btn-scale y --ind-scale.
+       Sólo ajustamos posición base del joystick y reducimos un poco el tamaño base
+       multiplicando por una escala móvil en las variables CSS. */
+    .joy{left:10px;bottom:18px}
+    /* Reducción base para móvil: aplicamos una escala adicional sin romper los sliders */
+    #touchLayer{--mobile-scale:0.85}
+    .joy{width:calc(130px * var(--btn-scale, 1) * var(--ind-scale, 1) * var(--mobile-scale, 1));
+         height:calc(130px * var(--btn-scale, 1) * var(--ind-scale, 1) * var(--mobile-scale, 1))}
+    .joy .stick{width:calc(54px * var(--btn-scale, 1) * var(--ind-scale, 1) * var(--mobile-scale, 1));
+                height:calc(54px * var(--btn-scale, 1) * var(--ind-scale, 1) * var(--mobile-scale, 1))}
+    .ab{width:calc(52px * var(--btn-scale, 1) * var(--ind-scale, 1) * var(--mobile-scale, 1));
+        height:calc(52px * var(--btn-scale, 1) * var(--ind-scale, 1) * var(--mobile-scale, 1));
+        font-size:calc(18px * var(--btn-scale, 1) * var(--ind-scale, 1) * var(--mobile-scale, 1))}
+    .pbtn{width:calc(54px * var(--btn-scale, 1) * var(--ind-scale, 1) * var(--mobile-scale, 1));
+          height:calc(54px * var(--btn-scale, 1) * var(--ind-scale, 1) * var(--mobile-scale, 1));
+          font-size:calc(14px * var(--btn-scale, 1) * var(--ind-scale, 1) * var(--mobile-scale, 1))}
+  }
+
+  /* ===== Modo horizontal (landscape) sin fullscreen: limitar altura del stage =====
+     Antes el stage usaba width:100% con aspect-ratio 4/3, lo que en horizontal lo
+     hacía gigantesco. Ahora limitamos por altura para que quede compacto y deje
+     espacio para los controles, manteniendo el mismo diseño visual. */
+  @media (orientation:landscape) and (max-height:700px){
+    main{padding:6px;padding-bottom:calc(220px + env(safe-area-inset-bottom))}
+    body:not(.stretch-on) #stage:not(:fullscreen){
+      /* Altura máxima ~50% del viewport y ancho calculado por aspect-ratio 4/3 */
+      height:50vh;
+      max-height:50vh;
+      width:auto;
+      max-width:100%;
+      aspect-ratio:4/3;
+      margin:0 auto;
+    }
+    /* Cuando "Estirar pantalla" está activo en landscape, respetamos los
+       valores manuales del usuario sin tope de 50vh. */
+    body.stretch-on #stage:not(:fullscreen){
+      height:calc(var(--stage-h, 90vh) * var(--stage-scale, 1));
+      width:min(calc(var(--stage-w, 100vw) * var(--stage-scale, 1)), 100%);
+      max-width:100%;
+      aspect-ratio:auto;
+      margin:0 auto;
+      box-sizing:border-box;
+    }
+  }
+
+  /* ===== Estirar pantalla: redimensionado manual del #stage ===== */
+  /* Cuando se activa la opción, el stage usa width/height fijos (custom)
+     en lugar de aspect-ratio automático. Mantiene el mismo diseño visual. */
   body.stretch-on #stage:not(:fullscreen){
-    height:calc(var(--stage-h, 90vh) * var(--stage-scale, 1));
-    width:min(calc(var(--stage-w, 100vw) * var(--stage-scale, 1)), 100%);
-    max-width:100%;aspect-ratio:auto;margin:0 auto;box-sizing:border-box;
+    width:min(calc(var(--stage-w, 100%) * var(--stage-scale, 1)), 100%);
+    height:calc(var(--stage-h, auto) * var(--stage-scale, 1));
+    max-width:100%;
+    aspect-ratio:auto;
+    resize:both;
+    overflow:hidden;
+    box-sizing:border-box;
   }
-}
+  /* Handles en esquinas (sólo PC, hover con mouse) */
+  .resize-handle{
+    position:absolute;width:18px;height:18px;
+    background:var(--accent2);border:2px solid #fff;
+    border-radius:50%;z-index:10;display:none;
+    box-shadow:0 2px 6px #0008;
+  }
+  body.stretch-on .resize-handle{display:block}
+  .resize-handle.tl{top:-9px;left:-9px;cursor:nwse-resize}
+  .resize-handle.tr{top:-9px;right:-9px;cursor:nesw-resize}
+  .resize-handle.bl{bottom:-9px;left:-9px;cursor:nesw-resize}
+  .resize-handle.br{bottom:-9px;right:-9px;cursor:nwse-resize}
 
-/* ===== Estirar pantalla ===== */
-body.stretch-on #stage:not(:fullscreen){
-  width:min(calc(var(--stage-w, 100%) * var(--stage-scale, 1)), 100%);
-  height:calc(var(--stage-h, auto) * var(--stage-scale, 1));
-  max-width:100%;
-  aspect-ratio:auto;
-  resize:both;overflow:hidden;box-sizing:border-box;
-}
-.resize-handle{
-  position:absolute;width:18px;height:18px;
-  background:var(--accent2);border:2px solid #fff;
-  border-radius:50%;z-index:10;display:none;
-  box-shadow:0 2px 8px rgba(15,23,42,.25);
-}
-body.stretch-on .resize-handle{display:block}
-.resize-handle.tl{top:-9px;left:-9px;cursor:nwse-resize}
-.resize-handle.tr{top:-9px;right:-9px;cursor:nesw-resize}
-.resize-handle.bl{bottom:-9px;left:-9px;cursor:nesw-resize}
-.resize-handle.br{bottom:-9px;right:-9px;cursor:nwse-resize}
+  /* Barra móvil para estirar pantalla (debajo del reproductor) */
+  #stretchBar{
+    display:none;max-width:960px;margin:8px auto 0;
+    background:var(--panel);border:1px solid var(--accent2);border-radius:10px;
+    padding:10px 12px;align-items:center;gap:10px;font-size:12px;
+  }
+  body.stretch-on #stretchBar{display:flex;flex-wrap:wrap}
+  #stretchBar .lbl{color:var(--muted);min-width:60px}
+  #stretchBar input[type=range]{flex:1;min-width:120px}
+  #stretchBar .val{color:var(--accent2);font-weight:700;min-width:48px;text-align:right}
+  /* En PC ocultamos los sliders (se usa el mouse en las esquinas) */
+  @media (hover:hover) and (pointer:fine){
+    #stretchBar .mobile-only{display:none}
+    #stretchBar .pc-hint{display:inline}
+  }
+  @media (hover:none) or (pointer:coarse){
+    #stretchBar .pc-hint{display:none}
+    .resize-handle{display:none !important}
+  }
 
-/* Barra estirar */
-#stretchBar{
-  display:none;max-width:960px;margin:10px auto 0;
-  background:var(--panel);
-  border:1px solid var(--accent2);
-  border-radius:12px;
-  padding:12px 14px;
-  align-items:center;justify-content:center;
-  gap:10px 14px;font-size:12px;
-  box-shadow:0 4px 12px rgba(79,70,229,.08);
-}
-body.stretch-on #stretchBar{display:flex;flex-wrap:wrap;justify-content:center;align-items:center}
-#stretchBar .sb-group{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:5px;min-width:140px;flex:0 1 180px;text-align:center;
-}
-#stretchBar .sb-group .lbl{color:var(--muted);text-align:center;white-space:nowrap;font-weight:500}
-#stretchBar .sb-group input[type=range]{width:100%;max-width:200px;margin:0}
-#stretchBar .sb-group .val{color:var(--accent2);font-weight:700;text-align:center}
-#stretchBar .sb-actions{display:flex;gap:8px;justify-content:center;align-items:center;flex:1 0 100%;margin-top:4px}
-@media (hover:hover) and (pointer:fine){
-  #stretchBar .mobile-only{display:none}
-  #stretchBar .pc-hint{display:inline}
-}
-@media (hover:none) or (pointer:coarse){
-  #stretchBar .pc-hint{display:none}
-  .resize-handle{display:none !important}
-}
-@media (max-width:520px){
-  body.stretch-on #stretchBar{flex-direction:column;gap:10px}
-  #stretchBar .sb-group{width:100%;max-width:300px;flex:0 0 auto}
-  #stretchBar .sb-group input[type=range]{max-width:260px}
-}
+  @media (max-width:380px){
+    .row{gap:6px}
+    button{padding:6px 8px}
+  }
 
-@media (max-width:380px){
-  .row{gap:6px}
-  button{padding:6px 9px}
-}
-
-/* ===== Colores personalizados de botones táctiles ===== */
-body.custom-btn-colors .ab,
-body.custom-btn-colors .pbtn,
-body.custom-btn-colors #fsEditBtn{
-  background: var(--cust-btn-bg, var(--btn-bg)) !important;
-  color: var(--cust-btn-text, var(--txt)) !important;
-  border-color: var(--cust-btn-border, var(--border)) !important;
-}
-body.custom-btn-colors .joy .stick{
-  background: var(--cust-btn-bg, linear-gradient(145deg,#ffffff,#dde1ea)) !important;
-  border-color: var(--cust-btn-border, var(--accent2)) !important;
-}
-body.custom-btn-colors .ab.is-pressed,
-body.custom-btn-colors .pbtn.is-pressed,
-body.custom-btn-colors .ab:active,
-body.custom-btn-colors .pbtn:active{
-  background: var(--cust-btn-press, var(--press)) !important;
-  border-color: var(--cust-btn-press, var(--press)) !important;
-  color: var(--cust-btn-text, #fff) !important;
-}
+  /* ===== Colores personalizados de botones táctiles ===== */
+  body.custom-btn-colors .ab,
+  body.custom-btn-colors .pbtn,
+  body.custom-btn-colors #fsEditBtn{
+    background: var(--cust-btn-bg, var(--btn-bg)) !important;
+    color: var(--cust-btn-text, var(--txt)) !important;
+    border-color: var(--cust-btn-border, var(--border)) !important;
+  }
+  body.custom-btn-colors .joy .stick{
+    background: var(--cust-btn-bg, linear-gradient(145deg,#3a4255,#1c2030)) !important;
+    border-color: var(--cust-btn-border, var(--accent2)) !important;
+  }
+  body.custom-btn-colors .ab.is-pressed,
+  body.custom-btn-colors .pbtn.is-pressed,
+  body.custom-btn-colors .ab:active,
+  body.custom-btn-colors .pbtn:active{
+    background: var(--cust-btn-press, var(--press)) !important;
+    border-color: var(--cust-btn-press, var(--press)) !important;
+    color: var(--cust-btn-text, #fff) !important;
+  }
